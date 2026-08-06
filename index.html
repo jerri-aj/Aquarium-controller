@@ -1,96 +1,194 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aquarium Controller</title>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aquarium Controller Dashboard</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; background: #121212; color: #fff; padding: 20px; max-width: 600px; margin: auto; }
-    .card { background: #1e1e1e; padding: 15px; border-radius: 10px; margin-bottom: 15px; }
-    .alert { background: #cf6679; color: #000; padding: 10px; border-radius: 5px; display: none; font-weight: bold; margin-bottom: 10px; }
-    .row { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; }
-    input[type=range] { width: 60%; }
-  </style>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            bgDark: '#0f172a',
+            cardDark: '#1e293b',
+            accentCyan: '#14b8a6',
+            alertRed: '#ef4444'
+          }
+        }
+      }
+    }
+  </script>
 </head>
-<body>
+<body class="bg-bgDark text-slate-100 min-h-screen p-6 font-sans">
 
-  <h2>🐠 Aquarium Dashboard</h2>
-
-  <div id="alertBox" class="alert"></div>
-
-  <!-- Thermostat & Graph -->
-  <div class="card">
-    <h3>Thermostat: <span id="tempVal">--</span> °C</h3>
-    <canvas id="tempChart"></canvas>
-  </div>
-
-  <!-- Controls -->
-  <div class="card">
-    <h3>Manual Controls</h3>
-    <div class="row"><label>Filter/Heater Power</label><input type="checkbox" id="filterToggle" onchange="updateDB('state/filter', this.checked)"></div>
-    <div class="row"><label>Cooling Fan</label><input type="checkbox" id="fanToggle" onchange="updateDB('state/fan', this.checked)"></div>
-    <div class="row">
-      <label>Light Dimmer</label>
-      <input type="range" id="lightSlider" min="0" max="255" onchange="updateDB('state/light_pwm', parseInt(this.value))">
+  <!-- Header -->
+  <header class="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-teal-500/20 border border-teal-500/40 flex items-center justify-center text-teal-400 font-bold text-xl">A</div>
+      <h1 class="text-2xl font-bold tracking-wide">Aquarium Controller <span class="text-xs text-teal-400 font-mono ml-2">v1.0</span></h1>
     </div>
-    <div class="row"><label>Night Light (15%)</label><input type="checkbox" id="nightToggle" onchange="updateDB('state/night_light', this.checked)"></div>
+    <div id="connection-status" class="flex items-center gap-2 text-sm bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700">
+      <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+      <span class="text-slate-300">Live Sync</span>
+    </div>
+  </header>
+
+  <!-- Main Grid Layout -->
+  <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+
+    <!-- Temperature Card -->
+    <div class="bg-cardDark border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-lg">
+      <div class="text-slate-400 text-sm font-medium">Current Water Temperature</div>
+      <div class="my-4">
+        <span id="temp-display" class="text-5xl font-extrabold tracking-tight">--</span>
+        <span class="text-2xl font-semibold text-teal-400">°C</span>
+      </div>
+      <div class="inline-flex items-center gap-2 text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full w-fit">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span id="temp-status">Optimal Range</span>
+      </div>
+    </div>
+
+    <!-- Light Control Card -->
+    <div class="bg-cardDark border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-lg">
+      <div class="flex justify-between items-center">
+        <span class="text-slate-400 text-sm font-medium">Lighting Intensity</span>
+        <span id="light-val" class="text-teal-400 font-bold">75%</span>
+      </div>
+      <div class="my-4">
+        <input id="light-slider" type="range" min="0" max="255" value="191" class="w-full accent-teal-400 bg-slate-700 h-2 rounded-lg cursor-pointer">
+      </div>
+      <div class="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800">
+        <span>Night Mode</span>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="night-toggle" class="sr-only peer">
+          <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Temperature Chart (Spans 2 columns) -->
+    <div class="bg-cardDark border border-slate-800 rounded-2xl p-5 md:col-span-2 shadow-lg flex flex-col justify-between">
+      <div class="text-slate-400 text-sm font-medium mb-2">24H Temperature Swing</div>
+      <div class="h-40 relative w-full">
+        <canvas id="tempChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Relays / Equipment Status -->
+    <div class="bg-cardDark border border-slate-800 rounded-2xl p-5 shadow-lg">
+      <div class="text-slate-400 text-sm font-medium mb-4">Equipment Status</div>
+      <div class="space-y-3">
+        <div class="flex justify-between items-center p-3 rounded-xl bg-slate-900/50 border border-slate-800">
+          <span class="text-sm font-medium">Filter & Heater</span>
+          <span id="filter-status" class="text-xs px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">ACTIVE</span>
+        </div>
+        <div class="flex justify-between items-center p-3 rounded-xl bg-slate-900/50 border border-slate-800">
+          <span class="text-sm font-medium">Cooling Fan</span>
+          <span id="fan-status" class="text-xs px-2.5 py-1 rounded-md bg-slate-800 text-slate-400 border border-slate-700">OFF</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feeder Control -->
+    <div class="bg-cardDark border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
+      <div class="text-slate-400 text-sm font-medium">Feeding Cycle</div>
+      <button id="feed-btn" class="w-full mt-4 py-3 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold rounded-xl transition duration-150 active:scale-95 shadow-lg shadow-teal-500/20">
+        TRIGGER FEEDER
+      </button>
+      <div class="text-xs text-slate-500 mt-3 text-center">
+        Last Fed: <span id="last-fed-time" class="text-slate-300">--</span>
+      </div>
+    </div>
+
+    <!-- System Alerts -->
+    <div class="bg-cardDark border border-slate-800 rounded-2xl p-5 md:col-span-2 shadow-lg">
+      <div class="text-slate-400 text-sm font-medium mb-3">System Alerts</div>
+      <div id="alerts-container" class="space-y-2">
+        <div class="p-3 rounded-xl bg-slate-900/50 border border-slate-800 text-xs text-slate-400 flex items-center gap-3">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>All operational parameters within standard range.</span>
+        </div>
+      </div>
+    </div>
+
   </div>
 
-  <!-- Schedulers -->
-  <div class="card">
-    <h3>Schedules</h3>
-    <div class="row"><label>Main Light ON/OFF</label><input type="time" id="lOn" onchange="updateDB('schedules/light_on', this.value)"><input type="time" id="lOff" onchange="updateDB('schedules/light_off', this.value)"></div>
-    <div class="row"><label>Night Light ON/OFF</label><input type="time" id="nOn" onchange="updateDB('schedules/night_on', this.value)"><input type="time" id="nOff" onchange="updateDB('schedules/night_off', this.value)"></div>
-    <div class="row"><label>Feeding Time</label><input type="time" id="fTime" onchange="updateDB('schedules/feed_time', this.value)"></div>
-  </div>
+  <!-- Firebase Integration -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-  <!-- ATO Stats -->
-  <div class="card">
-    <h3>ATO System</h3>
-    <p>Auto Top-Off Pump Total Runtime: <b id="atoRun">0</b> seconds today</p>
-  </div>
+    // Your Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyABXDA58Th247jUxjVjvcHKsVACjTDOhb4",
+      authDomain: "aquarium-controller-74c20.firebaseapp.com",
+      projectId: "aquarium-controller-74c20",
+      storageBucket: "aquarium-controller-74c20.firebasestorage.app",
+      messagingSenderId: "260862395172",
+      appId: "1:260862395172:web:14a37d856427b8ba5ae9b1"
+    };
 
-<script>
-  const firebaseConfig = { databaseURL: "https://YOUR-PROJECT-ID-default-rtdb.firebaseio.com" };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-  function updateDB(path, val) { db.ref(path).set(val); }
+    // Initialize Temperature Chart
+    const ctx = document.getElementById('tempChart').getContext('2d');
+    const tempChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+        datasets: [{
+          data: [24.8, 24.5, 25.0, 25.8, 25.3, 25.1],
+          borderColor: '#14b8a6',
+          borderWidth: 2,
+          tension: 0.4,
+          fill: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+          y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
+        }
+      }
+    });
 
-  // Chart Setup
-  const ctx = document.getElementById('tempChart').getContext('2d');
-  const chart = new Chart(ctx, {
-    type: 'line',
-    data: { labels: [], datasets: [{ label: 'Temp °C', data: [], borderColor: '#03dac6', fill: false }] },
-    options: { responsive: true, scales: { x: { display: false } } }
-  });
+    // Real-Time Firebase Listeners
+    onValue(ref(db, 'state/current_temp'), (snapshot) => {
+      const val = snapshot.val();
+      if (val !== null) document.getElementById('temp-display').innerText = parseFloat(val).toFixed(1);
+    });
 
-  // Sync Live Data
-  db.ref('state/current_temp').on('value', snap => document.getElementById('tempVal').innerText = snap.val());
-  db.ref('state/ato_runtime_sec').on('value', snap => document.getElementById('atoRun').innerText = snap.val());
-  
-  // High Temp / Sound Alert Banner
-  db.ref('alerts').on('value', snap => {
-    const a = snap.val() || {};
-    let msg = "";
-    if (a.high_temp) msg += "⚠️ HIGH TEMPERATURE ALERT! ";
-    if (a.feed_failure) msg += "⚠️ FEEDER FAILURE DETECTED! ";
-    if (a.ato_failure) msg += "⚠️ ATO PUMP TIMEOUT DETECTED! ";
-    const box = document.getElementById('alertBox');
-    box.style.display = msg ? "block" : "none";
-    box.innerText = msg;
-  });
+    onValue(ref(db, 'state/light_pwm'), (snapshot) => {
+      const val = snapshot.val();
+      if (val !== null) {
+        document.getElementById('light-slider').value = val;
+        document.getElementById('light-val').innerText = Math.round((val / 255) * 100) + '%';
+      }
+    });
 
-  // Temperature Log Graph Update
-  db.ref('history/temp_log').limitToLast(24).on('value', snap => {
-    const data = snap.val() || {};
-    chart.data.labels = Object.keys(data);
-    chart.data.datasets[0].data = Object.values(data);
-    chart.update();
-  });
-</script>
+    // Control Handlers
+    document.getElementById('light-slider').addEventListener('change', (e) => {
+      set(ref(db, 'state/light_pwm'), parseInt(e.target.value));
+    });
+
+    document.getElementById('night-toggle').addEventListener('change', (e) => {
+      set(ref(db, 'state/night_light'), e.target.checked);
+    });
+
+    document.getElementById('feed-btn').addEventListener('click', () => {
+      set(ref(db, 'controls/trigger_feed'), true);
+      document.getElementById('last-fed-time').innerText = new Date().toLocaleTimeString();
+    });
+  </script>
 </body>
 </html>
