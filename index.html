@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aquarium Controller</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #121212; color: #fff; padding: 20px; max-width: 600px; margin: auto; }
+    .card { background: #1e1e1e; padding: 15px; border-radius: 10px; margin-bottom: 15px; }
+    .alert { background: #cf6679; color: #000; padding: 10px; border-radius: 5px; display: none; font-weight: bold; margin-bottom: 10px; }
+    .row { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; }
+    input[type=range] { width: 60%; }
+  </style>
+</head>
+<body>
+
+  <h2>🐠 Aquarium Dashboard</h2>
+
+  <div id="alertBox" class="alert"></div>
+
+  <!-- Thermostat & Graph -->
+  <div class="card">
+    <h3>Thermostat: <span id="tempVal">--</span> °C</h3>
+    <canvas id="tempChart"></canvas>
+  </div>
+
+  <!-- Controls -->
+  <div class="card">
+    <h3>Manual Controls</h3>
+    <div class="row"><label>Filter/Heater Power</label><input type="checkbox" id="filterToggle" onchange="updateDB('state/filter', this.checked)"></div>
+    <div class="row"><label>Cooling Fan</label><input type="checkbox" id="fanToggle" onchange="updateDB('state/fan', this.checked)"></div>
+    <div class="row">
+      <label>Light Dimmer</label>
+      <input type="range" id="lightSlider" min="0" max="255" onchange="updateDB('state/light_pwm', parseInt(this.value))">
+    </div>
+    <div class="row"><label>Night Light (15%)</label><input type="checkbox" id="nightToggle" onchange="updateDB('state/night_light', this.checked)"></div>
+  </div>
+
+  <!-- Schedulers -->
+  <div class="card">
+    <h3>Schedules</h3>
+    <div class="row"><label>Main Light ON/OFF</label><input type="time" id="lOn" onchange="updateDB('schedules/light_on', this.value)"><input type="time" id="lOff" onchange="updateDB('schedules/light_off', this.value)"></div>
+    <div class="row"><label>Night Light ON/OFF</label><input type="time" id="nOn" onchange="updateDB('schedules/night_on', this.value)"><input type="time" id="nOff" onchange="updateDB('schedules/night_off', this.value)"></div>
+    <div class="row"><label>Feeding Time</label><input type="time" id="fTime" onchange="updateDB('schedules/feed_time', this.value)"></div>
+  </div>
+
+  <!-- ATO Stats -->
+  <div class="card">
+    <h3>ATO System</h3>
+    <p>Auto Top-Off Pump Total Runtime: <b id="atoRun">0</b> seconds today</p>
+  </div>
+
+<script>
+  const firebaseConfig = { databaseURL: "https://YOUR-PROJECT-ID-default-rtdb.firebaseio.com" };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  function updateDB(path, val) { db.ref(path).set(val); }
+
+  // Chart Setup
+  const ctx = document.getElementById('tempChart').getContext('2d');
+  const chart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: [], datasets: [{ label: 'Temp °C', data: [], borderColor: '#03dac6', fill: false }] },
+    options: { responsive: true, scales: { x: { display: false } } }
+  });
+
+  // Sync Live Data
+  db.ref('state/current_temp').on('value', snap => document.getElementById('tempVal').innerText = snap.val());
+  db.ref('state/ato_runtime_sec').on('value', snap => document.getElementById('atoRun').innerText = snap.val());
+  
+  // High Temp / Sound Alert Banner
+  db.ref('alerts').on('value', snap => {
+    const a = snap.val() || {};
+    let msg = "";
+    if (a.high_temp) msg += "⚠️ HIGH TEMPERATURE ALERT! ";
+    if (a.feed_failure) msg += "⚠️ FEEDER FAILURE DETECTED! ";
+    if (a.ato_failure) msg += "⚠️ ATO PUMP TIMEOUT DETECTED! ";
+    const box = document.getElementById('alertBox');
+    box.style.display = msg ? "block" : "none";
+    box.innerText = msg;
+  });
+
+  // Temperature Log Graph Update
+  db.ref('history/temp_log').limitToLast(24).on('value', snap => {
+    const data = snap.val() || {};
+    chart.data.labels = Object.keys(data);
+    chart.data.datasets[0].data = Object.values(data);
+    chart.update();
+  });
+</script>
+</body>
+</html>
