@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Aquarium Control Panel</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f7f6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 350px;
+      text-align: center;
+    }
+    .switch-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 20px;
+      padding: 10px 0;
+      border-top: 1px solid #eee;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 26px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 26px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #2196F3;
+    }
+    input:checked + .slider:before {
+      transform: translateX(24px);
+    }
+    .status-text {
+      font-weight: bold;
+      color: #555;
+    }
+  </style>
+
+  <!-- Firebase App & Database Compatibility SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Aquarium Controls</h2>
+    
+    <div class="switch-container">
+      <span class="status-text">LED Light</span>
+      <label class="switch">
+        <input type="checkbox" id="lightToggle" onchange="toggleLight(this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>
+    
+    <p id="lightStatusText">Status: Syncing...</p>
+  </div>
+
+  <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "YOUR_FIREBASE_API_KEY",
+      authDomain: "YOUR_FIREBASE_PROJECT_ID.firebaseapp.com",
+      databaseURL: "YOUR_FIREBASE_DATABASE_URL",
+      projectId: "YOUR_FIREBASE_PROJECT_ID",
+      storageBucket: "YOUR_FIREBASE_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // Push switch toggle state to Firebase
+    function toggleLight(isChecked) {
+      database.ref('controls/light').set(isChecked)
+        .catch(error => console.error("Database update error:", error));
+    }
+
+    // Realtime Sync from Firebase to Web Page UI
+    database.ref('controls/light').on('value', (snapshot) => {
+      const isLightOn = snapshot.val() || false;
+      document.getElementById('lightToggle').checked = isLightOn;
+      document.getElementById('lightStatusText').innerText = isLightOn ? "Status: ON" : "Status: OFF";
+    });
+  </script>
+</body>
+</html>
