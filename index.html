@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aquarium Controller Dashboard</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            bgDark: '#0f172a',
+            cardDark: '#1e293b',
+            accentCyan: '#14b8a6',
+            alertRed: '#ef4444'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    input[type="time"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.8);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body class="bg-bgDark text-slate-100 min-h-screen p-6 font-sans">
+
+  <!-- Header -->
+  <header class="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-teal-500/20 border border-teal-500/40 flex items-center justify-center text-teal-400 font-bold text-xl">A</div>
+      <h1 class="text-2xl font-bold tracking-wide">Aquarium Controller <span class="text-xs text-teal-400 font-mono ml-2">v1.0</span></h1>
+    </div>
+    <div id="connection-status" class="flex items-center gap-2 text-sm bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700">
+      <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+      <span class="text-slate-300">Live Sync</span>
+    </div>
+  </header>
+
+  <!-- Main Grid Layout -->
+  <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+
+    <!-- Temperature Card & Target Settings -->
+    <div class="bg-cardDark border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-lg gap-4">
+      <div>
+        <div class="text-slate-400 text-sm font-medium">Current Water Temperature</div>
+        <div class="my-3">
+          <span id="temp-display" class="text-5xl font-extrabold tracking-tight">--</span>
+          <span class="text-2xl font-semibold text-teal-400">°C</span>
+        </div>
+        <div class="inline-flex items-center gap-2 text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 rounded-full w-fit">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span id="temp-status">Optimal Range</span>
+        </div>
+      </div>
+
+      <!-- Temperature Settings Input -->
+      <div class="pt-3 border-t border-slate-800 space-y-2">
+        <div class="text-xs font-semibold text-slate-400">Temperature Target Settings</div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="text-slate-500 block mb-1">Target (°C)</label>
+            <input type="number" step="0.1" id="target-temp-input" value="25.0" class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 text-center">
+          </div>
+          <div>
+            <label class="text-slate-500 block mb-1">Hysteresis</label>
+            <input type="number" step="0.1" id="hysteresis-input" value="0.5" class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 text-center">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lighting Controls & Schedulers Card -->
+    <div class="bg-cardDark border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-lg gap-4">
+      <div>
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-slate-400 text-sm font-medium">Lighting Intensity</span>
+          <span id="light-val" class="text-teal-400 font-bold">50%</span>
+        </div>
+        <input id="light-slider" type="range" min="0" max="255" value="128" class="w-full accent-teal-400 bg-slate-700 h-2 rounded-lg cursor-pointer">
+      </div>
+
+      <!-- Master Light Toggle -->
+      <div class="flex items-center justify-between text-xs text-slate-300 pt-2 border-t border-slate-800">
+        <span class="font-medium text-teal-400">Main Light Master Toggle</span>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="master-light-toggle" class="sr-only peer">
+          <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+        </label>
+      </div>
+
+      <!-- Night Mode Toggle -->
+      <div class="flex items-center justify-between text-xs text-slate-300 pt-2 border-t border-slate-800">
+        <span>Night Mode</span>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="night-toggle" class="sr-only peer">
+          <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+        </label>
+      </div>
+
+      <!-- Day Light Scheduler -->
+      <div class="pt-2 border-t border-slate-800 space-y-2">
+        <div class="text-xs font-semibold text-slate-400">Day Light Schedule</div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="text-slate-500 block mb-1">ON</label>
+            <input type="time" id="light-on-time" value="08:00" class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 text-center">
+          </div>
+          <div>
+            <label class="text-slate-500 block mb-1">OFF</label>
+            <input type="time" id="light-off-time" value="20:00" class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 text-center">
+          </div>
+        </div>
+      </div>
+
+      <!-- Night Light Scheduler -->
+      <div class="pt-2 border-t border-slate-800 space-y-2">
+        <div class="text-xs font-semibold text-slate-400">Night Light Schedule</div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="text-slate-500 block mb-1">ON</label>
+            <input type="time" id="night-on-time" value="20:01" class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 text-center">
+          </div>
+          <div>
+            <label class="text-slate-500 block mb-1">OFF</label>
+            <input type="time" id="night-off-time" value="23:00" class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 text-center">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Temperature Chart -->
+    <div class="bg-cardDark border border-slate-800 rounded-2xl p-5 md:col-span-2 shadow-lg flex flex-col justify-between">
+      <div class="text-slate-400 text-sm font-medium mb-2">Recorded Temperature Log History</div>
+      <div class="h-56 relative w-full">
+        <canvas id="tempChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Equipment Controls -->
+    <div class="bg-cardDark border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4 flex flex-col justify-between">
+      <div class="text-slate-400 text-sm font-medium">Equipment Controls & Sensors</div>
+      
+      <div class="space-y-3">
+        <!-- Filter / Pump Toggle -->
+        <div class="flex justify-between items-center p-3 rounded-xl bg-slate-900/50 border border-slate-800">
+          <span class="text-sm font-medium text-slate-200">Filter / Pump</span>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="filter-toggle" class="sr-only peer">
+            <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+          </label>
+        </div>
+
+        <!-- Heater Status (Automated) -->
+        <div class="flex justify-between items-center p-3 rounded-xl bg-slate-900/50 border border-slate-800">
+          <span class="text-sm font-medium text-slate-200">Heater (Auto)</span>
+          <span id="heater-status" class="text-xs font-bold px-2 py-1 rounded bg-slate-800 text-slate-400">OFF</span>
+        </div>
+
+        <!-- Cooling Fan Status (Automated) -->
+        <div class="flex justify-between items-center p-3 rounded-xl bg-slate-900/50 border border-slate-800">
+          <span class="text-sm font-medium text-slate-200">Cooling Fan (Auto)</span>
+          <span id="fan-status" class="text-xs font-bold px-2 py-1 rounded bg-slate-800 text-slate-400">OFF</span>
+        </div>
+
+        <!-- ATO Runtime Display -->
+        <div class="flex justify-between items-center p-3 rounded-xl bg-slate-900/50 border border-slate-800">
+          <span class="text-sm font-medium text-slate-200">ATO Pump Runtime</span>
+          <span id="ato-runtime" class="text-xs font-bold text-teal-400">0s</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feeding Controls & Scheduler -->
+    <div class="bg-cardDark border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between gap-4">
+      <div>
+        <div class="text-slate-400 text-sm font-medium mb-3">Feeding Cycle</div>
+        <button id="feed-btn" class="w-full py-3 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold rounded-xl transition duration-150 active:scale-95 shadow-lg shadow-teal-500/20 text-sm">
+          TRIGGER FEEDER
+        </button>
+        <div class="text-[11px] text-slate-500 mt-2 text-center">
+          Last Triggered: <span id="last-fed-time" class="text-slate-300">--</span>
+        </div>
+      </div>
+
+      <!-- Feeding Scheduler -->
+      <div class="pt-3 border-t border-slate-800 space-y-2">
+        <div class="text-xs font-semibold text-slate-400">Automated Feeding Times</div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="text-slate-500 block mb-1">Feed 1</label>
+            <input type="time" id="feed-time-1" value="09:00" class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 text-center">
+          </div>
+          <div>
+            <label class="text-slate-500 block mb-1">Feed 2</label>
+            <input type="time" id="feed-time-2" value="18:00" class="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 text-center">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Alerts -->
+    <div class="bg-cardDark border border-slate-800 rounded-2xl p-5 md:col-span-2 shadow-lg">
+      <div class="text-slate-400 text-sm font-medium mb-3">System Safety Alerts</div>
+      <div id="alerts-container" class="space-y-2">
+        <div class="p-3 rounded-xl bg-slate-900/50 border border-slate-800 text-xs text-slate-400 flex items-center gap-3">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>All operational parameters within standard range.</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Firebase Integration Script -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyABXDA58Th247jUxjVjvcHKsVACjTDOhb4",
+      authDomain: "aquarium-controller-74c20.firebaseapp.com",
+      databaseURL: "https://aquarium-controller-74c20-default-rtdb.firebaseio.com",
+      projectId: "aquarium-controller-74c20",
+      storageBucket: "aquarium-controller-74c20.firebasestorage.app",
+      messagingSenderId: "260862395172",
+      appId: "1:260862395172:web:14a37d856427b8ba5ae9b1"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Chart Setup
+    const ctx = document.getElementById('tempChart').getContext('2d');
+    const tempChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          data: [],
+          borderColor: '#14b8a6',
+          borderWidth: 2,
+          tension: 0.4,
+          fill: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+          y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
+        }
+      }
+    });
+
+    // 1. Listen to Realtime Telemetry (/state)
+    onValue(ref(db, 'state/current_temp'), (snap) => {
+      if (snap.exists()) document.getElementById('temp-display').innerText = parseFloat(snap.val()).toFixed(1);
+    });
+
+    onValue(ref(db, 'state/light_pwm'), (snap) => {
+      if (snap.exists()) {
+        const val = snap.val();
+        document.getElementById('light-slider').value = val;
+        document.getElementById('light-val').innerText = Math.round((val / 255) * 100) + '%';
+        document.getElementById('master-light-toggle').checked = val > 0;
+      }
+    });
+
+    onValue(ref(db, 'state/night_light'), (snap) => {
+      if (snap.exists()) document.getElementById('night-toggle').checked = snap.val();
+    });
+
+    onValue(ref(db, 'state/filter'), (snap) => {
+      if (snap.exists()) document.getElementById('filter-toggle').checked = snap.val();
+    });
+
+    onValue(ref(db, 'state/heater'), (snap) => {
+      if (snap.exists()) {
+        const el = document.getElementById('heater-status');
+        el.innerText = snap.val() ? "ON" : "OFF";
+        el.className = snap.val() ? "text-xs font-bold px-2 py-1 rounded bg-red-500/20 text-red-400 border border-red-500/30" : "text-xs font-bold px-2 py-1 rounded bg-slate-800 text-slate-400";
+      }
+    });
+
+    onValue(ref(db, 'state/fan'), (snap) => {
+      if (snap.exists()) {
+        const el = document.getElementById('fan-status');
+        el.innerText = snap.val() ? "ON" : "OFF";
+        el.className = snap.val() ? "text-xs font-bold px-2 py-1 rounded bg-teal-500/20 text-teal-400 border border-teal-500/30" : "text-xs font-bold px-2 py-1 rounded bg-slate-800 text-slate-400";
+      }
+    });
+
+    onValue(ref(db, 'state/ato_runtime_sec'), (snap) => {
+      if (snap.exists()) document.getElementById('ato-runtime').innerText = snap.val() + "s";
+    });
+
+    // 2. Listen to User Settings (/settings)
+    onValue(ref(db, 'settings/target_temp'), (snap) => {
+      if (snap.exists()) document.getElementById('target-temp-input').value = snap.val();
+    });
+
+    onValue(ref(db, 'settings/temp_hysteresis'), (snap) => {
+      if (snap.exists()) document.getElementById('hysteresis-input').value = snap.val();
+    });
+
+    // 3. Listen to Schedules (/schedules)
+    const syncSchedule = (path, elementId) => {
+      onValue(ref(db, `schedules/${path}`), (snap) => {
+        if (snap.exists()) document.getElementById(elementId).value = snap.val();
+      });
+    };
+
+    syncSchedule('light_on', 'light-on-time');
+    syncSchedule('light_off', 'light-off-time');
+    syncSchedule('night_on', 'night-on-time');
+    syncSchedule('night_off', 'night-off-time');
+    syncSchedule('feed_1', 'feed-time-1');
+    syncSchedule('feed_2', 'feed-time-2');
+
+    // 4. Populate Live Temperature Chart History (/history/temp_log)
+    onValue(ref(db, 'history/temp_log'), (snap) => {
+      if (snap.exists()) {
+        const data = snap.val();
+        tempChart.data.labels = Object.keys(data);
+        tempChart.data.datasets[0].data = Object.values(data);
+        tempChart.update();
+      }
+    });
+
+    // 5. System Safety Alerts Listener (/alerts)
+    onValue(ref(db, 'alerts'), (snap) => {
+      const container = document.getElementById('alerts-container');
+      if (snap.exists()) {
+        const alerts = snap.val();
+        let html = '';
+        if (alerts.high_temp) {
+          html += `<div class="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-400 flex items-center gap-3"><span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span><span>HIGH TEMPERATURE WARNING DETECTED!</span></div>`;
+        }
+        if (alerts.ato_failure) {
+          html += `<div class="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-400 flex items-center gap-3"><span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span><span>ATO PUMP TIMEOUT FAILURE EXCEEDED!</span></div>`;
+        }
+        if (alerts.feed_failure) {
+          html += `<div class="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-400 flex items-center gap-3"><span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span><span>FEEDER MECHANISM DISRUPTED!</span></div>`;
+        }
+        if (!html) {
+          html = `<div class="p-3 rounded-xl bg-slate-900/50 border border-slate-800 text-xs text-slate-400 flex items-center gap-3"><span class="w-2 h-2 rounded-full bg-emerald-500"></span><span>All operational parameters within standard range.</span></div>`;
+        }
+        container.innerHTML = html;
+      }
+    });
+
+    // UI Writes to Firebase
+    let previousPwm = 128;
+    document.getElementById('light-slider').addEventListener('change', (e) => {
+      const val = parseInt(e.target.value);
+      if (val > 0) previousPwm = val;
+      set(ref(db, 'state/light_pwm'), val);
+    });
+
+    // Master Light Toggle Button Behavior
+    document.getElementById('master-light-toggle').addEventListener('change', (e) => {
+      const targetVal = e.target.checked ? (previousPwm > 0 ? previousPwm : 128) : 0;
+      set(ref(db, 'state/light_pwm'), targetVal);
+    });
+
+    document.getElementById('night-toggle').addEventListener('change', (e) => set(ref(db, 'state/night_light'), e.target.checked));
+    document.getElementById('filter-toggle').addEventListener('change', (e) => set(ref(db, 'state/filter'), e.target.checked));
+
+    document.getElementById('target-temp-input').addEventListener('change', (e) => set(ref(db, 'settings/target_temp'), parseFloat(e.target.value)));
+    document.getElementById('hysteresis-input').addEventListener('change', (e) => set(ref(db, 'settings/temp_hysteresis'), parseFloat(e.target.value)));
+
+    const bindSchedule = (elementId, path) => {
+      document.getElementById(elementId).addEventListener('change', (e) => set(ref(db, `schedules/${path}`), e.target.value));
+    };
+
+    bindSchedule('light-on-time', 'light_on');
+    bindSchedule('light-off-time', 'light_off');
+    bindSchedule('night-on-time', 'night_on');
+    bindSchedule('night-off-time', 'night_off');
+    bindSchedule('feed-time-1', 'feed_1');
+    bindSchedule('feed-time-2', 'feed_2');
+
+    document.getElementById('feed-btn').addEventListener('click', () => {
+      set(ref(db, 'controls/trigger_feed'), true);
+      document.getElementById('last-fed-time').innerText = new Date().toLocaleTimeString();
+    });
+  </script>
+</body>
+</html>
