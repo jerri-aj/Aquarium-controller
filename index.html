@@ -14,14 +14,14 @@
 
   <style>
     :root {
-      --bg-color: #0f172a;
-      --card-bg: #1e293b;
+      --bg-color: #0d1424;
+      --card-bg: #151d30;
       --accent-blue: #38bdf8;
       --text-main: #f8fafc;
       --text-sub: #94a3b8;
       --status-on: #22c55e;
       --status-off: #ef4444;
-      --border-color: #334155;
+      --border-color: #232d42;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -34,20 +34,13 @@
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; max-width: 1100px; margin: 0 auto; }
     
     .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
-    .card-title { font-size: 0.9rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+    .card-title { font-size: 0.85rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; font-weight: 600; }
     
-    .metric-value { font-size: 2.2rem; font-weight: bold; color: var(--text-main); margin: 5px 0; }
+    .metric-value { font-size: 2.2rem; font-weight: bold; color: var(--text-main); margin-bottom: 10px; }
     
-    .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; }
-    .badge-on { background: rgba(34, 197, 94, 0.2); color: var(--status-on); border: 1px solid var(--status-on); }
-    .badge-off { background: rgba(239, 68, 68, 0.2); color: var(--status-off); border: 1px solid var(--status-off); }
+    .toggle-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; margin-bottom: 8px; }
+    .toggle-label { font-size: 0.95rem; color: var(--text-main); }
 
-    .slider-container { margin-top: 10px; }
-    input[type="range"] { width: 100%; -webkit-appearance: none; background: var(--border-color); height: 8px; border-radius: 4px; outline: none; }
-    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--accent-blue); cursor: pointer; }
-
-    .toggle-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
-    
     /* Toggle Switches */
     .switch { position: relative; display: inline-block; width: 46px; height: 24px; }
     .switch input { opacity: 0; width: 0; height: 0; }
@@ -56,12 +49,20 @@
     input:checked + .slider { background-color: var(--accent-blue); }
     input:checked + .slider:before { transform: translateX(22px); }
 
-    .btn { background: var(--accent-blue); color: #000; font-weight: bold; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; width: 100%; transition: opacity 0.2s; }
+    .slider-container { margin-top: 10px; }
+    input[type="range"] { width: 100%; -webkit-appearance: none; background: var(--border-color); height: 8px; border-radius: 4px; outline: none; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--accent-blue); cursor: pointer; }
+
+    .btn { background: var(--accent-blue); color: #000; font-weight: bold; border: none; padding: 12px 15px; border-radius: 6px; cursor: pointer; width: 100%; transition: opacity 0.2s; margin-top: 10px; }
     .btn:active { opacity: 0.8; }
 
-    .schedule-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+    .badge-on { background: rgba(34, 197, 94, 0.2); color: var(--status-on); border: 1px solid var(--status-on); }
+    .badge-off { background: rgba(239, 68, 68, 0.2); color: var(--status-off); border: 1px solid var(--status-off); }
+
+    .schedule-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px; }
     .schedule-group { display: flex; flex-direction: column; font-size: 0.8rem; color: var(--text-sub); }
-    .schedule-group input { background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 5px; border-radius: 4px; margin-top: 4px; outline: none; }
+    .schedule-group input { background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px; border-radius: 4px; margin-top: 4px; outline: none; }
 
     .chart-card { grid-column: 1 / -1; }
   </style>
@@ -75,7 +76,7 @@
 
   <div class="grid">
     
-    <!-- CARD 1: Temperature & Thermostat -->
+    <!-- CARD 1: Temperature & Thermostat Toggles -->
     <div class="card">
       <div>
         <div class="card-title">Water Temperature</div>
@@ -83,8 +84,18 @@
       </div>
       <div>
         <div class="toggle-row">
-          <span>Heater: <span id="heaterBadge" class="badge badge-off">OFF</span></span>
-          <span>Cooling Fan: <span id="fanBadge" class="badge badge-off">OFF</span></span>
+          <span class="toggle-label">Heater</span>
+          <label class="switch">
+            <input type="checkbox" id="heaterToggle">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <span class="toggle-label">Cooling Fan</span>
+          <label class="switch">
+            <input type="checkbox" id="fanToggle">
+            <span class="slider"></span>
+          </label>
         </div>
       </div>
     </div>
@@ -93,7 +104,7 @@
     <div class="card">
       <div class="card-title">Lighting System</div>
       <div class="toggle-row">
-        <span>Night Mode</span>
+        <span class="toggle-label">Night Mode</span>
         <label class="switch">
           <input type="checkbox" id="nightToggle">
           <span class="slider"></span>
@@ -108,19 +119,24 @@
       </div>
     </div>
 
-    <!-- CARD 3: Equipment & ATO -->
+    <!-- CARD 3: Filtration, ATO & Feeder Toggles -->
     <div class="card">
-      <div class="card-title">Filtration & Equipment</div>
+      <div class="card-title">Filtration & Pumps</div>
       <div class="toggle-row">
-        <span>Filter Pump</span>
+        <span class="toggle-label">Filter Pump</span>
         <label class="switch">
           <input type="checkbox" id="pumpToggle">
           <span class="slider"></span>
         </label>
       </div>
-      <div style="margin-top: 15px;">
-        <button class="btn" id="feedBtn">FEED FISH NOW</button>
+      <div class="toggle-row">
+        <span class="toggle-label">ATO Pump</span>
+        <label class="switch">
+          <input type="checkbox" id="atoToggle">
+          <span class="slider"></span>
+        </label>
       </div>
+      <button class="btn" id="feedBtn">FEED FISH NOW</button>
     </div>
 
     <!-- CARD 4: Schedules -->
@@ -150,7 +166,7 @@
     <div class="card" style="grid-column: 1 / -1;">
       <div class="card-title">Acoustic & Safety Monitor</div>
       <div class="toggle-row">
-        <span id="soundMsg" style="font-weight: 500;">Monitoring...</span>
+        <span id="soundMsg" style="font-weight: 500;">All operational parameters within standard range.</span>
         <span id="soundDb" class="badge badge-on">NORMAL</span>
       </div>
     </div>
@@ -168,13 +184,8 @@
   <script>
     // ---------------- FIREBASE CONFIGURATION ----------------
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "aquarium-controller-74c20.firebaseapp.com",
       databaseURL: "https://aquarium-controller-74c20-default-rtdb.firebaseio.com",
-      projectId: "aquarium-controller-74c20",
-      storageBucket: "aquarium-controller-74c20.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
+      projectId: "aquarium-controller-74c20"
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -200,8 +211,8 @@
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
-          y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
+          x: { grid: { color: '#232d42' }, ticks: { color: '#94a3b8' } },
+          y: { grid: { color: '#232d42' }, ticks: { color: '#94a3b8' } }
         }
       }
     });
@@ -211,35 +222,31 @@
       if (snap.exists()) document.getElementById('tempVal').innerHTML = snap.val().toFixed(1) + ' &deg;C';
     });
 
-    db.ref('/light_intensity').on('value', (snap) => {
-      if (snap.exists()) {
-        const val = snap.val();
-        document.getElementById('lightSlider').value = val;
-        document.getElementById('lightVal').innerText = val + '%';
-      }
+    db.ref('/heater_status').on('value', (snap) => {
+      if (snap.exists()) document.getElementById('heaterToggle').checked = snap.val();
     });
 
-    db.ref('/night_mode').on('value', (snap) => {
-      if (snap.exists()) document.getElementById('nightToggle').checked = snap.val();
+    db.ref('/fan_status').on('value', (snap) => {
+      if (snap.exists()) document.getElementById('fanToggle').checked = snap.val();
     });
 
     db.ref('/pump_status').on('value', (snap) => {
       if (snap.exists()) document.getElementById('pumpToggle').checked = snap.val();
     });
 
-    db.ref('/heater_status').on('value', (snap) => {
-      if (snap.exists()) {
-        const badge = document.getElementById('heaterBadge');
-        badge.innerText = snap.val() ? 'ON' : 'OFF';
-        badge.className = snap.val() ? 'badge badge-on' : 'badge badge-off';
-      }
+    db.ref('/ato_status').on('value', (snap) => {
+      if (snap.exists()) document.getElementById('atoToggle').checked = snap.val();
     });
 
-    db.ref('/fan_status').on('value', (snap) => {
+    db.ref('/night_mode').on('value', (snap) => {
+      if (snap.exists()) document.getElementById('nightToggle').checked = snap.val();
+    });
+
+    db.ref('/light_intensity').on('value', (snap) => {
       if (snap.exists()) {
-        const badge = document.getElementById('fanBadge');
-        badge.innerText = snap.val() ? 'ON' : 'OFF';
-        badge.className = snap.val() ? 'badge badge-on' : 'badge badge-off';
+        const val = snap.val();
+        document.getElementById('lightSlider').value = val;
+        document.getElementById('lightVal').innerText = val + '%';
       }
     });
 
@@ -270,17 +277,29 @@
       }
     });
 
-    // ---------------- USER INPUT HANDLERS ----------------
-    document.getElementById('lightSlider').addEventListener('change', (e) => {
-      db.ref('/light_intensity').set(parseInt(e.target.value));
+    // ---------------- USER TOGGLE HANDLERS ----------------
+    document.getElementById('heaterToggle').addEventListener('change', (e) => {
+      db.ref('/heater_status').set(e.target.checked);
+    });
+
+    document.getElementById('fanToggle').addEventListener('change', (e) => {
+      db.ref('/fan_status').set(e.target.checked);
+    });
+
+    document.getElementById('pumpToggle').addEventListener('change', (e) => {
+      db.ref('/pump_status').set(e.target.checked);
+    });
+
+    document.getElementById('atoToggle').addEventListener('change', (e) => {
+      db.ref('/ato_status').set(e.target.checked);
     });
 
     document.getElementById('nightToggle').addEventListener('change', (e) => {
       db.ref('/night_mode').set(e.target.checked);
     });
 
-    document.getElementById('pumpToggle').addEventListener('change', (e) => {
-      db.ref('/pump_status').set(e.target.checked);
+    document.getElementById('lightSlider').addEventListener('change', (e) => {
+      db.ref('/light_intensity').set(parseInt(e.target.value));
     });
 
     document.getElementById('feedBtn').addEventListener('click', () => {
