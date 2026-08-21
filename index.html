@@ -3,107 +3,163 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Aquarium Controller</title>
+  <title>Aquarium Controller Dashboard</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Firebase App & Database (v9 Modular / Compatibility build) -->
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Firebase App & Database -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8">
+<body class="bg-[#181c24] text-slate-200 min-h-screen p-6 font-sans">
 
-  <div class="max-w-4xl mx-auto space-y-6">
+  <div class="max-w-7xl mx-auto space-y-6">
     <!-- Header -->
-    <header class="flex justify-between items-center bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
-      <div>
-        <h1 class="text-2xl font-bold text-cyan-400">Aquarium Control Center</h1>
-        <p class="text-sm text-slate-400">Live Telemetry & Manual Override System</p>
+    <header class="flex justify-between items-center pb-2">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">A</div>
+        <h1 class="text-xl font-bold tracking-wide text-white">Aquarium Controller <span class="text-xs text-slate-500 font-normal">v2.0</span></h1>
       </div>
-      <div id="connection-status" class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-        Connecting...
+      <div id="connection-status" class="flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full text-xs text-emerald-400">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>Live Sync</span>
       </div>
     </header>
 
-    <!-- System Control Mode -->
-    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex items-center justify-between">
-      <div>
-        <h2 class="text-lg font-semibold text-slate-200">Automation Master Switch</h2>
-        <p class="text-xs text-slate-400">Enable automated sensor triggers (Temperature, ATO water level, Scheduled feeding)</p>
-      </div>
-      <label class="relative inline-flex items-center cursor-pointer">
-        <input type="checkbox" id="toggle-auto-mode" class="sr-only peer">
-        <div class="w-14 h-7 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-cyan-500"></div>
-      </label>
-    </div>
+    <!-- Main Grid: 2 Rows x 3 Columns -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-    <!-- Manual Control Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      
-      <!-- Heater Control Card -->
-      <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex flex-col justify-between space-y-4">
-        <div class="flex justify-between items-start">
-          <div>
-            <h3 class="text-md font-semibold text-slate-300">Heater Control</h3>
-            <span id="badge-heater" class="inline-block mt-1 px-2.5 py-0.5 text-xs font-medium rounded-md bg-slate-700 text-slate-400">OFF</span>
-          </div>
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="toggle-heater" class="sr-only peer">
-            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
-          </label>
+      <!-- CARD 1: Current Water Temperature -->
+      <div class="bg-[#212734] p-6 rounded-2xl border border-slate-700/50 flex flex-col justify-between h-64">
+        <h2 class="text-sm font-medium text-slate-400">Current Water Temperature</h2>
+        <div class="my-auto">
+          <div class="text-5xl font-bold text-emerald-400 tracking-tight" id="temp-display">--.-°C</div>
         </div>
-        <p class="text-xs text-slate-400">Manual power switch for the submersible water heater relay.</p>
+        <div>
+          <span id="temp-status-badge" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            ● Optimal Range
+          </span>
+        </div>
       </div>
 
-      <!-- Cooling Fan Control Card -->
-      <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex flex-col justify-between space-y-4">
-        <div class="flex justify-between items-start">
-          <div>
-            <h3 class="text-md font-semibold text-slate-300">Cooling Fan</h3>
-            <span id="badge-fan" class="inline-block mt-1 px-2.5 py-0.5 text-xs font-medium rounded-md bg-slate-700 text-slate-400">OFF</span>
-          </div>
+      <!-- CARD 2: Lighting Control -->
+      <div class="bg-[#212734] p-6 rounded-2xl border border-slate-700/50 flex flex-col justify-between h-64">
+        <div class="flex justify-between items-center">
+          <h2 class="text-sm font-medium text-slate-400">Lighting Intensity</h2>
+          <span class="text-emerald-400 font-bold text-sm" id="dimmer-val">50%</span>
+        </div>
+        
+        <!-- Slider -->
+        <input type="range" id="light-slider" min="0" max="100" value="50" class="w-full accent-emerald-400 bg-slate-700 h-2 rounded-lg cursor-pointer">
+
+        <div class="flex justify-between items-center text-xs text-slate-400">
+          <span>Night Mode:</span>
           <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="toggle-fan" class="sr-only peer">
-            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+            <input type="checkbox" id="toggle-night-mode" class="sr-only peer">
+            <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-400"></div>
           </label>
         </div>
-        <p class="text-xs text-slate-400">Manual switch to drive heat dissipation fans for surface evaporative cooling.</p>
+
+        <!-- Schedule Inputs -->
+        <div class="space-y-1 text-xs">
+          <p class="text-slate-400">Day Light Schedule</p>
+          <div class="grid grid-cols-2 gap-2">
+            <input type="time" id="day-on" value="08:00" class="bg-[#181c24] border border-slate-700 rounded p-1 text-center text-slate-300 focus:outline-none">
+            <input type="time" id="day-off" value="18:00" class="bg-[#181c24] border border-slate-700 rounded p-1 text-center text-slate-300 focus:outline-none">
+          </div>
+        </div>
       </div>
 
-      <!-- ATO Pump Control Card -->
-      <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex flex-col justify-between space-y-4">
-        <div class="flex justify-between items-start">
-          <div>
-            <h3 class="text-md font-semibold text-slate-300">ATO Pump (Auto Top-Off)</h3>
-            <span id="badge-ato" class="inline-block mt-1 px-2.5 py-0.5 text-xs font-medium rounded-md bg-slate-700 text-slate-400">OFF</span>
-          </div>
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="toggle-ato" class="sr-only peer">
-            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-500"></div>
-          </label>
+      <!-- CARD 3: 24h Temperature Swing Chart -->
+      <div class="bg-[#212734] p-6 rounded-2xl border border-slate-700/50 flex flex-col justify-between h-64">
+        <h2 class="text-sm font-medium text-slate-400 mb-2">24h Temperature Swing</h2>
+        <div class="relative w-full h-full flex-1">
+          <canvas id="tempChart"></canvas>
         </div>
-        <p class="text-xs text-slate-400">Controls the fresh water top-off pump for compensating evaporated reservoir water.</p>
       </div>
 
-      <!-- Automatic Feeder Control Card -->
-      <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex flex-col justify-between space-y-4">
-        <div class="flex justify-between items-start">
-          <div>
-            <h3 class="text-md font-semibold text-slate-300">Automatic Feeder</h3>
-            <span id="badge-feeder" class="inline-block mt-1 px-2.5 py-0.5 text-xs font-medium rounded-md bg-slate-700 text-slate-400">IDLE</span>
+      <!-- CARD 4: Equipment Controls -->
+      <div class="bg-[#212734] p-6 rounded-2xl border border-slate-700/50 flex flex-col justify-between h-64">
+        <h2 class="text-sm font-medium text-slate-400">Equipment Controls</h2>
+        
+        <div class="space-y-4 my-auto">
+          <!-- Filter / Pump -->
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-slate-300">Filter / Pump</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="toggle-pump" class="sr-only peer" checked>
+              <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-400"></div>
+            </label>
           </div>
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="toggle-feeder" class="sr-only peer">
-            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-          </label>
+
+          <!-- Heater -->
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-slate-300">Heater</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="toggle-heater" class="sr-only peer">
+              <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-400"></div>
+            </label>
+          </div>
+
+          <!-- Cooling Fan -->
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-slate-300">Cooling Fan</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="toggle-fan" class="sr-only peer">
+              <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-400"></div>
+            </label>
+          </div>
         </div>
-        <p class="text-xs text-slate-400">Trigger an immediate manual feeding cycle via the servo/stepper motor feeder.</p>
+      </div>
+
+      <!-- CARD 5: Feeding Cycle -->
+      <div class="bg-[#212734] p-6 rounded-2xl border border-slate-700/50 flex flex-col justify-between h-64">
+        <h2 class="text-sm font-medium text-slate-400">Feeding Cycle</h2>
+
+        <!-- Trigger Button -->
+        <button id="btn-feed" class="w-full bg-emerald-400 hover:bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl transition-all shadow-lg shadow-emerald-400/10 active:scale-[0.98]">
+          TRIGGER FEEDER
+        </button>
+
+        <!-- Automated Feeding Times -->
+        <div class="space-y-1 text-xs">
+          <p class="text-slate-400">Automated Feeding Times:</p>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <span class="text-[10px] text-slate-500 block">Feed 1</span>
+              <input type="time" id="feed-1" value="08:00" class="w-full bg-[#181c24] border border-slate-700 rounded p-1 text-center text-slate-300 focus:outline-none">
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-500 block">Feed 2</span>
+              <input type="time" id="feed-2" value="18:00" class="w-full bg-[#181c24] border border-slate-700 rounded p-1 text-center text-slate-300 focus:outline-none">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 6: System Alerts (Sound & Status Inputs) -->
+      <div class="bg-[#212734] p-6 rounded-2xl border border-slate-700/50 flex flex-col justify-between h-64">
+        <h2 class="text-sm font-medium text-slate-400">System Alerts</h2>
+        
+        <div id="alerts-container" class="space-y-2 overflow-y-auto max-h-40 my-auto pr-1">
+          <div class="flex items-start space-x-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-lg">
+            <span class="mt-0.5">●</span>
+            <p id="sound-alert-text">All operational parameters within standard range.</p>
+          </div>
+        </div>
+
+        <div class="text-[10px] text-slate-500 flex justify-between border-t border-slate-700/50 pt-2">
+          <span>Acoustic Monitor: Active</span>
+          <span id="noise-level">Ambient dB: Normal</span>
+        </div>
       </div>
 
     </div>
   </div>
 
   <script>
-    // --- Firebase Configuration ---
+    // --- Firebase Setup ---
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
       authDomain: "YOUR_PROJECT.firebaseapp.com",
@@ -114,71 +170,109 @@
       appId: "YOUR_APP_ID"
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // DOM Elements
-    const elements = {
-      status: document.getElementById('connection-status'),
-      autoMode: document.getElementById('toggle-auto-mode'),
-      heater: document.getElementById('toggle-heater'),
-      fan: document.getElementById('toggle-fan'),
-      ato: document.getElementById('toggle-ato'),
-      feeder: document.getElementById('toggle-feeder'),
-      badgeHeater: document.getElementById('badge-heater'),
-      badgeFan: document.getElementById('badge-fan'),
-      badgeAto: document.getElementById('badge-ato'),
-      badgeFeeder: document.getElementById('badge-feeder')
-    };
-
-    // UI Helper to update Badge Styles dynamically
-    function updateBadge(badge, state, activeText = 'ON', activeClass = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30') {
-      if (state) {
-        badge.textContent = activeText;
-        badge.className = `inline-block mt-1 px-2.5 py-0.5 text-xs font-medium rounded-md border ${activeClass}`;
-      } else {
-        badge.textContent = 'OFF';
-        badge.className = 'inline-block mt-1 px-2.5 py-0.5 text-xs font-medium rounded-md bg-slate-700 text-slate-400';
-      }
-    }
-
-    // Monitor Database Connection State
-    db.ref('.info/connected').on('value', (snap) => {
-      if (snap.val() === true) {
-        elements.status.textContent = 'System Online';
-        elements.status.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
-      } else {
-        elements.status.textContent = 'Disconnected';
-        elements.status.className = 'px-3 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20';
+    // --- Chart.js Setup for Temperature Graph ---
+    const ctx = document.getElementById('tempChart').getContext('2d');
+    const tempChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+        datasets: [{
+          data: [24.8, 24.5, 25.0, 25.8, 25.3, 25.1],
+          borderColor: '#34d399',
+          borderWidth: 2,
+          tension: 0.4,
+          pointBackgroundColor: '#34d399',
+          pointRadius: 3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: '#2a3241' }, ticks: { color: '#64748b', font: { size: 10 } } },
+          y: { grid: { color: '#2a3241' }, ticks: { color: '#64748b', font: { size: 10 } }, min: 24.0, max: 26.0 }
+        }
       }
     });
 
-    // --- Synchronize Realtime Data to UI ---
-    db.ref('controls').on('value', (snapshot) => {
-      const data = snapshot.val() || {};
+    // --- Element Handles ---
+    const elTemp = document.getElementById('temp-display');
+    const elSlider = document.getElementById('light-slider');
+    const elDimmerVal = document.getElementById('dimmer-val');
+    const elNight = document.getElementById('toggle-night-mode');
+    const elPump = document.getElementById('toggle-pump');
+    const elHeater = document.getElementById('toggle-heater');
+    const elFan = document.getElementById('toggle-fan');
+    const elBtnFeed = document.getElementById('btn-feed');
+    const elAlertText = document.getElementById('sound-alert-text');
+    const elNoiseLevel = document.getElementById('noise-level');
 
-      elements.autoMode.checked = !!data.auto_mode;
+    // --- Realtime DB Dynamic Sync ---
+    db.ref().on('value', (snap) => {
+      const d = snap.val() || {};
+
+      // Temp
+      if(d.temperature !== undefined) elTemp.textContent = `${d.temperature.toFixed(1)}°C`;
       
-      elements.heater.checked = !!data.heater_override;
-      updateBadge(elements.badgeHeater, data.heater_override, 'HEATING', 'bg-red-500/20 text-red-400 border-red-500/30');
+      // Controls
+      if(d.light_intensity !== undefined) {
+        elSlider.value = d.light_intensity;
+        elDimmerVal.textContent = `${d.light_intensity}%`;
+      }
+      if(d.night_mode !== undefined) elNight.checked = d.night_mode;
+      if(d.pump_status !== undefined) elPump.checked = d.pump_status;
+      if(d.heater_status !== undefined) elHeater.checked = d.heater_status;
+      if(d.fan_status !== undefined) elFan.checked = d.fan_status;
 
-      elements.fan.checked = !!data.fan_override;
-      updateBadge(elements.badgeFan, data.fan_override, 'COOLING', 'bg-blue-500/20 text-blue-400 border-blue-500/30');
+      // Sound Sensor Alerts
+      if(d.sound_alert) {
+        elAlertText.textContent = d.sound_alert.message || "Acoustic anomaly / Splash detected!";
+        elAlertText.parentElement.className = "flex items-start space-x-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-lg";
+        elNoiseLevel.textContent = `Ambient dB: ${d.sound_alert.db || 'High'}`;
+      } else {
+        elAlertText.textContent = "All operational parameters within standard range.";
+        elAlertText.parentElement.className = "flex items-start space-x-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-lg";
+        elNoiseLevel.textContent = "Ambient dB: Normal";
+      }
 
-      elements.ato.checked = !!data.ato_override;
-      updateBadge(elements.badgeAto, data.ato_override, 'PUMPING', 'bg-teal-500/20 text-teal-400 border-teal-500/30');
-
-      elements.feeder.checked = !!data.feeder_override;
-      updateBadge(elements.badgeFeeder, data.feeder_override, 'FEEDING', 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30');
+      // Graph update
+      if(d.temp_history && Array.isArray(d.temp_history)) {
+        tempChart.data.datasets[0].data = d.temp_history;
+        tempChart.update();
+      }
     });
 
-    // --- Synchronize UI Input Events to Firebase Realtime Database ---
-    elements.autoMode.addEventListener('change', (e) => db.ref('controls/auto_mode').set(e.target.checked));
-    elements.heater.addEventListener('change', (e) => db.ref('controls/heater_override').set(e.target.checked));
-    elements.fan.addEventListener('change', (e) => db.ref('controls/fan_override').set(e.target.checked));
-    elements.ato.addEventListener('change', (e) => db.ref('controls/ato_override').set(e.target.checked));
-    elements.feeder.addEventListener('change', (e) => db.ref('controls/feeder_override').set(e.target.checked));
+    // --- User UI Interactions ---
+    elSlider.addEventListener('input', (e) => {
+      elDimmerVal.textContent = `${e.target.value}%`;
+      db.ref('light_intensity').set(parseInt(e.target.value));
+    });
+
+    elNight.addEventListener('change', (e) => db.ref('night_mode').set(e.target.checked));
+    elPump.addEventListener('change', (e) => db.ref('pump_status').set(e.target.checked));
+    elHeater.addEventListener('change', (e) => db.ref('heater_status').set(e.target.checked));
+    elFan.addEventListener('change', (e) => db.ref('fan_status').set(e.target.checked));
+
+    elBtnFeed.addEventListener('click', () => {
+      db.ref('feed_now').set(true);
+      elBtnFeed.textContent = 'FEEDING...';
+      elBtnFeed.classList.add('opacity-50');
+      setTimeout(() => {
+        db.ref('feed_now').set(false);
+        elBtnFeed.textContent = 'TRIGGER FEEDER';
+        elBtnFeed.classList.remove('opacity-50');
+      }, 3000);
+    });
+
+    // Schedules Sync
+    document.getElementById('day-on').addEventListener('change', (e) => db.ref('schedules/day_on').set(e.target.value));
+    document.getElementById('day-off').addEventListener('change', (e) => db.ref('schedules/day_off').set(e.target.value));
+    document.getElementById('feed-1').addEventListener('change', (e) => db.ref('schedules/feed_1').set(e.target.value));
+    document.getElementById('feed-2').addEventListener('change', (e) => db.ref('schedules/feed_2').set(e.target.value));
   </script>
 </body>
 </html>
