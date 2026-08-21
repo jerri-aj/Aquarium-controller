@@ -3,169 +3,176 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aquarium Controller Dashboard</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js -->
+  <title>Aquarium Smart Dashboard</title>
+  
+  <!-- Chart.js for Temperature History -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Firebase App & Database -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  
+  <!-- Firebase App & Database SDKs (v8) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --accent-blue: #38bdf8;
+      --text-main: #f8fafc;
+      --text-sub: #94a3b8;
+      --status-on: #22c55e;
+      --status-off: #ef4444;
+      --border-color: #334155;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-main); padding: 20px; }
+
+    .header { text-align: center; margin-bottom: 25px; }
+    .header h1 { font-size: 1.8rem; color: var(--accent-blue); }
+    .header p { color: var(--text-sub); font-size: 0.9rem; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; max-width: 1100px; margin: 0 auto; }
+    
+    .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+    .card-title { font-size: 0.9rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+    
+    .metric-value { font-size: 2.2rem; font-weight: bold; color: var(--text-main); margin: 5px 0; }
+    
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; }
+    .badge-on { background: rgba(34, 197, 94, 0.2); color: var(--status-on); border: 1px solid var(--status-on); }
+    .badge-off { background: rgba(239, 68, 68, 0.2); color: var(--status-off); border: 1px solid var(--status-off); }
+
+    .slider-container { margin-top: 10px; }
+    input[type="range"] { width: 100%; -webkit-appearance: none; background: var(--border-color); height: 8px; border-radius: 4px; outline: none; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--accent-blue); cursor: pointer; }
+
+    .toggle-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+    
+    /* Toggle Switches */
+    .switch { position: relative; display: inline-block; width: 46px; height: 24px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color); transition: .3s; border-radius: 24px; }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--accent-blue); }
+    input:checked + .slider:before { transform: translateX(22px); }
+
+    .btn { background: var(--accent-blue); color: #000; font-weight: bold; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; width: 100%; transition: opacity 0.2s; }
+    .btn:active { opacity: 0.8; }
+
+    .schedule-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .schedule-group { display: flex; flex-direction: column; font-size: 0.8rem; color: var(--text-sub); }
+    .schedule-group input { background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 5px; border-radius: 4px; margin-top: 4px; outline: none; }
+
+    .chart-card { grid-column: 1 / -1; }
+  </style>
 </head>
-<body class="bg-[#181c24] text-slate-200 min-h-screen p-6 font-sans">
+<body>
 
-  <div class="max-w-7xl mx-auto space-y-6">
-    <!-- Header -->
-    <header class="flex justify-between items-center pb-2">
-      <div class="flex items-center space-x-3">
-        <div class="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">A</div>
-        <h1 class="text-xl font-bold tracking-wide text-white">Aquarium Controller <span class="text-xs text-slate-500 font-normal">v2.0</span></h1>
+  <div class="header">
+    <h1>Aquarium Control Center</h1>
+    <p>Real-Time ESP8266 Firebase Sync</p>
+  </div>
+
+  <div class="grid">
+    
+    <!-- CARD 1: Temperature & Thermostat -->
+    <div class="card">
+      <div>
+        <div class="card-title">Water Temperature</div>
+        <div class="metric-value" id="tempVal">-- &deg;C</div>
       </div>
-      <div id="connection-status" class="flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full text-xs text-emerald-400">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span>Live Sync</span>
-      </div>
-    </header>
-
-    <!-- Main Grid: 2 Rows x 3 Columns -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-      <!-- CARD 1: Current Water Temperature -->
-      <div class="bg-[#212734] p-6 rounded-2xl border border-slate-700/50 flex flex-col justify-between h-64">
-        <h2 class="text-sm font-medium text-slate-400">Current Water Temperature</h2>
-        <div class="my-auto">
-          <div class="text-5xl font-bold text-emerald-400 tracking-tight" id="temp-display">--.-°C</div>
-        </div>
-        <div>
-          <span id="temp-status-badge" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            ● Optimal Range
-          </span>
+      <div>
+        <div class="toggle-row">
+          <span>Heater: <span id="heaterBadge" class="badge badge-off">OFF</span></span>
+          <span>Cooling Fan: <span id="fanBadge" class="badge badge-off">OFF</span></span>
         </div>
       </div>
-
-      <!-- CARD 2: Lighting Control -->
-      <div class="bg-[#212734] p-6 rounded-2xl border border-slate-700/50 flex flex-col justify-between h-64">
-        <div class="flex justify-between items-center">
-          <h2 class="text-sm font-medium text-slate-400">Lighting Intensity</h2>
-          <span class="text-emerald-400 font-bold text-sm" id="dimmer-val">50%</span>
-        </div>
-        
-        <!-- Slider -->
-        <input type="range" id="light-slider" min="0" max="100" value="50" class="w-full accent-emerald-400 bg-slate-700 h-2 rounded-lg cursor-pointer">
-
-        <div class="flex justify-between items-center text-xs text-slate-400">
-          <span>Night Mode:</span>
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" id="toggle-night-mode" class="sr-only peer">
-            <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-400"></div>
-          </label>
-        </div>
-
-        <!-- Schedule Inputs -->
-        <div class="space-y-1 text-xs">
-          <p class="text-slate-400">Day Light Schedule</p>
-          <div class="grid grid-cols-2 gap-2">
-            <input type="time" id="day-on" value="08:00" class="bg-[#181c24] border border-slate-700 rounded p-1 text-center text-slate-300 focus:outline-none">
-            <input type="time" id="day-off" value="18:00" class="bg-[#181c24] border border-slate-700 rounded p-1 text-center text-slate-300 focus:outline-none">
-          </div>
-        </div>
-      </div>
-
-      <!-- CARD 3: 24h Temperature Swing Chart -->
-      <div class="bg-[#212734] p-6 rounded-2xl border border-slate-700/50 flex flex-col justify-between h-64">
-        <h2 class="text-sm font-medium text-slate-400 mb-2">24h Temperature Swing</h2>
-        <div class="relative w-full h-full flex-1">
-          <canvas id="tempChart"></canvas>
-        </div>
-      </div>
-
-      <!-- CARD 4: Equipment Controls -->
-      <div class="bg-[#212734] p-6 rounded-2xl border border-slate-700/50 flex flex-col justify-between h-64">
-        <h2 class="text-sm font-medium text-slate-400">Equipment Controls</h2>
-        
-        <div class="space-y-4 my-auto">
-          <!-- Filter / Pump -->
-          <div class="flex items-center justify-between">
-            <span class="text-sm text-slate-300">Filter / Pump</span>
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" id="toggle-pump" class="sr-only peer" checked>
-              <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-400"></div>
-            </label>
-          </div>
-
-          <!-- Heater -->
-          <div class="flex items-center justify-between">
-            <span class="text-sm text-slate-300">Heater</span>
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" id="toggle-heater" class="sr-only peer">
-              <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-400"></div>
-            </label>
-          </div>
-
-          <!-- Cooling Fan -->
-          <div class="flex items-center justify-between">
-            <span class="text-sm text-slate-300">Cooling Fan</span>
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" id="toggle-fan" class="sr-only peer">
-              <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-400"></div>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <!-- CARD 5: Feeding Cycle -->
-      <div class="bg-[#212734] p-6 rounded-2xl border border-slate-700/50 flex flex-col justify-between h-64">
-        <h2 class="text-sm font-medium text-slate-400">Feeding Cycle</h2>
-
-        <!-- Trigger Button -->
-        <button id="btn-feed" class="w-full bg-emerald-400 hover:bg-emerald-500 text-slate-950 font-bold py-3 rounded-xl transition-all shadow-lg shadow-emerald-400/10 active:scale-[0.98]">
-          TRIGGER FEEDER
-        </button>
-
-        <!-- Automated Feeding Times -->
-        <div class="space-y-1 text-xs">
-          <p class="text-slate-400">Automated Feeding Times:</p>
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <span class="text-[10px] text-slate-500 block">Feed 1</span>
-              <input type="time" id="feed-1" value="08:00" class="w-full bg-[#181c24] border border-slate-700 rounded p-1 text-center text-slate-300 focus:outline-none">
-            </div>
-            <div>
-              <span class="text-[10px] text-slate-500 block">Feed 2</span>
-              <input type="time" id="feed-2" value="18:00" class="w-full bg-[#181c24] border border-slate-700 rounded p-1 text-center text-slate-300 focus:outline-none">
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- CARD 6: System Alerts (Sound & Status Inputs) -->
-      <div class="bg-[#212734] p-6 rounded-2xl border border-slate-700/50 flex flex-col justify-between h-64">
-        <h2 class="text-sm font-medium text-slate-400">System Alerts</h2>
-        
-        <div id="alerts-container" class="space-y-2 overflow-y-auto max-h-40 my-auto pr-1">
-          <div class="flex items-start space-x-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-lg">
-            <span class="mt-0.5">●</span>
-            <p id="sound-alert-text">All operational parameters within standard range.</p>
-          </div>
-        </div>
-
-        <div class="text-[10px] text-slate-500 flex justify-between border-t border-slate-700/50 pt-2">
-          <span>Acoustic Monitor: Active</span>
-          <span id="noise-level">Ambient dB: Normal</span>
-        </div>
-      </div>
-
     </div>
+
+    <!-- CARD 2: Lighting Control -->
+    <div class="card">
+      <div class="card-title">Lighting System</div>
+      <div class="toggle-row">
+        <span>Night Mode</span>
+        <label class="switch">
+          <input type="checkbox" id="nightToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="slider-container">
+        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-sub);">
+          <span>Intensity</span>
+          <span id="lightVal">0%</span>
+        </div>
+        <input type="range" id="lightSlider" min="0" max="100" value="0">
+      </div>
+    </div>
+
+    <!-- CARD 3: Equipment & ATO -->
+    <div class="card">
+      <div class="card-title">Filtration & Equipment</div>
+      <div class="toggle-row">
+        <span>Filter Pump</span>
+        <label class="switch">
+          <input type="checkbox" id="pumpToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div style="margin-top: 15px;">
+        <button class="btn" id="feedBtn">FEED FISH NOW</button>
+      </div>
+    </div>
+
+    <!-- CARD 4: Schedules -->
+    <div class="card">
+      <div class="card-title">Schedules</div>
+      <div class="schedule-inputs">
+        <div class="schedule-group">
+          <label>Day On</label>
+          <input type="time" id="dayOnTime">
+        </div>
+        <div class="schedule-group">
+          <label>Day Off</label>
+          <input type="time" id="dayOffTime">
+        </div>
+        <div class="schedule-group">
+          <label>Feed 1</label>
+          <input type="time" id="feed1Time">
+        </div>
+        <div class="schedule-group">
+          <label>Feed 2</label>
+          <input type="time" id="feed2Time">
+        </div>
+      </div>
+    </div>
+
+    <!-- CARD 5: Sound Monitoring -->
+    <div class="card" style="grid-column: 1 / -1;">
+      <div class="card-title">Acoustic & Safety Monitor</div>
+      <div class="toggle-row">
+        <span id="soundMsg" style="font-weight: 500;">Monitoring...</span>
+        <span id="soundDb" class="badge badge-on">NORMAL</span>
+      </div>
+    </div>
+
+    <!-- CARD 6: Temperature History Chart -->
+    <div class="card chart-card">
+      <div class="card-title">Temperature Log (Recent Readings)</div>
+      <div style="position: relative; height:220px; width:100%">
+        <canvas id="tempChart"></canvas>
+      </div>
+    </div>
+
   </div>
 
   <script>
-    // --- Firebase Setup ---
+    // ---------------- FIREBASE CONFIGURATION ----------------
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT.firebaseapp.com",
-      databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-      projectId: "YOUR_PROJECT",
-      storageBucket: "YOUR_PROJECT.appspot.com",
+      authDomain: "aquarium-controller-74c20.firebaseapp.com",
+      databaseURL: "https://aquarium-controller-74c20-default-rtdb.firebaseio.com",
+      projectId: "aquarium-controller-74c20",
+      storageBucket: "aquarium-controller-74c20.appspot.com",
       messagingSenderId: "YOUR_SENDER_ID",
       appId: "YOUR_APP_ID"
     };
@@ -173,19 +180,19 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- Chart.js Setup for Temperature Graph ---
+    // ---------------- CHART SETUP ----------------
     const ctx = document.getElementById('tempChart').getContext('2d');
     const tempChart = new Chart(ctx, {
       type: 'line',
       data: {
         labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
         datasets: [{
-          data: [24.8, 24.5, 25.0, 25.8, 25.3, 25.1],
-          borderColor: '#34d399',
-          borderWidth: 2,
-          tension: 0.4,
-          pointBackgroundColor: '#34d399',
-          pointRadius: 3
+          label: 'Temperature (°C)',
+          data: [],
+          borderColor: '#38bdf8',
+          backgroundColor: 'rgba(56, 189, 248, 0.1)',
+          fill: true,
+          tension: 0.3
         }]
       },
       options: {
@@ -193,86 +200,103 @@
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { color: '#2a3241' }, ticks: { color: '#64748b', font: { size: 10 } } },
-          y: { grid: { color: '#2a3241' }, ticks: { color: '#64748b', font: { size: 10 } }, min: 24.0, max: 26.0 }
+          x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+          y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
         }
       }
     });
 
-    // --- Element Handles ---
-    const elTemp = document.getElementById('temp-display');
-    const elSlider = document.getElementById('light-slider');
-    const elDimmerVal = document.getElementById('dimmer-val');
-    const elNight = document.getElementById('toggle-night-mode');
-    const elPump = document.getElementById('toggle-pump');
-    const elHeater = document.getElementById('toggle-heater');
-    const elFan = document.getElementById('toggle-fan');
-    const elBtnFeed = document.getElementById('btn-feed');
-    const elAlertText = document.getElementById('sound-alert-text');
-    const elNoiseLevel = document.getElementById('noise-level');
+    // ---------------- REAL-TIME LISTENERS ----------------
+    db.ref('/temperature').on('value', (snap) => {
+      if (snap.exists()) document.getElementById('tempVal').innerHTML = snap.val().toFixed(1) + ' &deg;C';
+    });
 
-    // --- Realtime DB Dynamic Sync ---
-    db.ref().on('value', (snap) => {
-      const d = snap.val() || {};
-
-      // Temp
-      if(d.temperature !== undefined) elTemp.textContent = `${d.temperature.toFixed(1)}°C`;
-      
-      // Controls
-      if(d.light_intensity !== undefined) {
-        elSlider.value = d.light_intensity;
-        elDimmerVal.textContent = `${d.light_intensity}%`;
+    db.ref('/light_intensity').on('value', (snap) => {
+      if (snap.exists()) {
+        const val = snap.val();
+        document.getElementById('lightSlider').value = val;
+        document.getElementById('lightVal').innerText = val + '%';
       }
-      if(d.night_mode !== undefined) elNight.checked = d.night_mode;
-      if(d.pump_status !== undefined) elPump.checked = d.pump_status;
-      if(d.heater_status !== undefined) elHeater.checked = d.heater_status;
-      if(d.fan_status !== undefined) elFan.checked = d.fan_status;
+    });
 
-      // Sound Sensor Alerts
-      if(d.sound_alert) {
-        elAlertText.textContent = d.sound_alert.message || "Acoustic anomaly / Splash detected!";
-        elAlertText.parentElement.className = "flex items-start space-x-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-lg";
-        elNoiseLevel.textContent = `Ambient dB: ${d.sound_alert.db || 'High'}`;
-      } else {
-        elAlertText.textContent = "All operational parameters within standard range.";
-        elAlertText.parentElement.className = "flex items-start space-x-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-lg";
-        elNoiseLevel.textContent = "Ambient dB: Normal";
+    db.ref('/night_mode').on('value', (snap) => {
+      if (snap.exists()) document.getElementById('nightToggle').checked = snap.val();
+    });
+
+    db.ref('/pump_status').on('value', (snap) => {
+      if (snap.exists()) document.getElementById('pumpToggle').checked = snap.val();
+    });
+
+    db.ref('/heater_status').on('value', (snap) => {
+      if (snap.exists()) {
+        const badge = document.getElementById('heaterBadge');
+        badge.innerText = snap.val() ? 'ON' : 'OFF';
+        badge.className = snap.val() ? 'badge badge-on' : 'badge badge-off';
       }
+    });
 
-      // Graph update
-      if(d.temp_history && Array.isArray(d.temp_history)) {
-        tempChart.data.datasets[0].data = d.temp_history;
+    db.ref('/fan_status').on('value', (snap) => {
+      if (snap.exists()) {
+        const badge = document.getElementById('fanBadge');
+        badge.innerText = snap.val() ? 'ON' : 'OFF';
+        badge.className = snap.val() ? 'badge badge-on' : 'badge badge-off';
+      }
+    });
+
+    db.ref('/sound_alert').on('value', (snap) => {
+      if (snap.exists()) {
+        const data = snap.val();
+        document.getElementById('soundMsg').innerText = data.message || 'Operational';
+        const dbBadge = document.getElementById('soundDb');
+        dbBadge.innerText = data.db || 'NORMAL';
+        dbBadge.className = (data.db === 'High') ? 'badge badge-off' : 'badge badge-on';
+      }
+    });
+
+    db.ref('/schedules').on('value', (snap) => {
+      if (snap.exists()) {
+        const s = snap.val();
+        if (s.day_on) document.getElementById('dayOnTime').value = s.day_on;
+        if (s.day_off) document.getElementById('dayOffTime').value = s.day_off;
+        if (s.feed_1) document.getElementById('feed1Time').value = s.feed_1;
+        if (s.feed_2) document.getElementById('feed2Time').value = s.feed_2;
+      }
+    });
+
+    db.ref('/temp_history').on('value', (snap) => {
+      if (snap.exists()) {
+        tempChart.data.datasets[0].data = snap.val();
         tempChart.update();
       }
     });
 
-    // --- User UI Interactions ---
-    elSlider.addEventListener('input', (e) => {
-      elDimmerVal.textContent = `${e.target.value}%`;
-      db.ref('light_intensity').set(parseInt(e.target.value));
+    // ---------------- USER INPUT HANDLERS ----------------
+    document.getElementById('lightSlider').addEventListener('change', (e) => {
+      db.ref('/light_intensity').set(parseInt(e.target.value));
     });
 
-    elNight.addEventListener('change', (e) => db.ref('night_mode').set(e.target.checked));
-    elPump.addEventListener('change', (e) => db.ref('pump_status').set(e.target.checked));
-    elHeater.addEventListener('change', (e) => db.ref('heater_status').set(e.target.checked));
-    elFan.addEventListener('change', (e) => db.ref('fan_status').set(e.target.checked));
-
-    elBtnFeed.addEventListener('click', () => {
-      db.ref('feed_now').set(true);
-      elBtnFeed.textContent = 'FEEDING...';
-      elBtnFeed.classList.add('opacity-50');
-      setTimeout(() => {
-        db.ref('feed_now').set(false);
-        elBtnFeed.textContent = 'TRIGGER FEEDER';
-        elBtnFeed.classList.remove('opacity-50');
-      }, 3000);
+    document.getElementById('nightToggle').addEventListener('change', (e) => {
+      db.ref('/night_mode').set(e.target.checked);
     });
 
-    // Schedules Sync
-    document.getElementById('day-on').addEventListener('change', (e) => db.ref('schedules/day_on').set(e.target.value));
-    document.getElementById('day-off').addEventListener('change', (e) => db.ref('schedules/day_off').set(e.target.value));
-    document.getElementById('feed-1').addEventListener('change', (e) => db.ref('schedules/feed_1').set(e.target.value));
-    document.getElementById('feed-2').addEventListener('change', (e) => db.ref('schedules/feed_2').set(e.target.value));
+    document.getElementById('pumpToggle').addEventListener('change', (e) => {
+      db.ref('/pump_status').set(e.target.checked);
+    });
+
+    document.getElementById('feedBtn').addEventListener('click', () => {
+      db.ref('/feed_now').set(true);
+    });
+
+    ['dayOnTime', 'dayOffTime', 'feed1Time', 'feed2Time'].forEach((id) => {
+      document.getElementById(id).addEventListener('change', () => {
+        db.ref('/schedules').update({
+          day_on: document.getElementById('dayOnTime').value,
+          day_off: document.getElementById('dayOffTime').value,
+          feed_1: document.getElementById('feed1Time').value,
+          feed_2: document.getElementById('feed2Time').value
+        });
+      });
+    });
   </script>
 </body>
 </html>
