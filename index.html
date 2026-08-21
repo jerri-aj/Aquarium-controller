@@ -3,194 +3,137 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aquarium Smart Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <title>Aquarium Dashboard</title>
   <style>
-    :root {
-      --bg-color: #0d1424;
-      --card-bg: #151d30;
-      --accent-blue: #38bdf8;
-      --text-main: #f8fafc;
-      --text-sub: #94a3b8;
-      --status-on: #22c55e;
-      --status-off: #ef4444;
-      --border-color: #232d42;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background-color: var(--bg-color); color: var(--text-main); padding: 20px; }
-    .header { text-align: center; margin-bottom: 25px; }
-    .header h1 { font-size: 1.8rem; color: var(--accent-blue); }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; max-width: 1100px; margin: 0 auto; }
-    .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
-    .card-title { font-size: 0.85rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; font-weight: 600; }
-    .metric-value { font-size: 2.2rem; font-weight: bold; color: var(--text-main); margin-bottom: 10px; }
-    .toggle-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; margin-bottom: 8px; }
-    .toggle-label { font-size: 0.95rem; color: var(--text-main); }
-    .switch { position: relative; display: inline-block; width: 46px; height: 24px; }
-    .switch input { opacity: 0; width: 0; height: 0; }
-    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color); transition: .3s; border-radius: 24px; }
-    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-    input:checked + .slider { background-color: var(--accent-blue); }
-    input:checked + .slider:before { transform: translateX(22px); }
-    .slider-container { margin-top: 10px; }
-    input[type="range"] { width: 100%; -webkit-appearance: none; background: var(--border-color); height: 8px; border-radius: 4px; outline: none; }
-    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--accent-blue); cursor: pointer; }
-    .btn { background: var(--accent-blue); color: #000; font-weight: bold; border: none; padding: 12px 15px; border-radius: 6px; cursor: pointer; width: 100%; transition: opacity 0.2s; margin-top: 10px; }
-    .btn:active { opacity: 0.8; }
-    .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
-    .badge-on { background: rgba(34, 197, 94, 0.2); color: var(--status-on); border: 1px solid var(--status-on); }
-    .badge-off { background: rgba(239, 68, 68, 0.2); color: var(--status-off); border: 1px solid var(--status-off); }
-    .chart-card { grid-column: 1 / -1; }
+    body { font-family: system-ui, sans-serif; background: #f4f4f9; padding: 20px; max-width: 600px; margin: 0 auto; }
+    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    h2 { margin-top: 0; color: #333; }
+    .status { font-weight: bold; color: #007bff; }
+    button { background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
+    button:active { background: #0056b3; }
   </style>
 </head>
 <body>
 
-  <div class="header">
-    <h1>Aquarium Control Center</h1>
-    <p>ESP8266 Live Synchronization</p>
-  </div>
+  <h1>Aquarium Controller</h1>
 
-  <div class="grid">
-    <div class="card">
-      <div>
-        <div class="card-title">Water Temperature</div>
-        <div class="metric-value" id="tempVal">-- &deg;C</div>
-      </div>
-      <div>
-        <div class="toggle-row">
-          <span class="toggle-label">Heater</span>
-          <label class="switch">
-            <input type="checkbox" id="heaterToggle">
-            <span class="slider"></span>
-          </label>
-        </div>
-        <div class="toggle-row">
-          <span class="toggle-label">Cooling Fan</span>
-          <label class="switch">
-            <input type="checkbox" id="fanToggle">
-            <span class="slider"></span>
-          </label>
-        </div>
-      </div>
+  <!-- Sensor Status -->
+  <div class="card">
+    <h2>Sensors</h2>
+    <div class="row">
+      <span>Temperature:</span>
+      <span class="status"><span id="temp-display">--</span> °C</span>
     </div>
-
-    <div class="card">
-      <div class="card-title">Lighting System</div>
-      <div class="toggle-row">
-        <span class="toggle-label">Night Mode</span>
-        <label class="switch">
-          <input type="checkbox" id="nightToggle">
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div class="slider-container">
-        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-sub);">
-          <span>Intensity</span>
-          <span id="lightVal">0%</span>
-        </div>
-        <input type="range" id="lightSlider" min="0" max="100" value="0">
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Filtration & Pumps</div>
-      <div class="toggle-row">
-        <span class="toggle-label">Filter Pump</span>
-        <label class="switch">
-          <input type="checkbox" id="pumpToggle">
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div class="toggle-row">
-        <span class="toggle-label">ATO Pump</span>
-        <label class="switch">
-          <input type="checkbox" id="atoToggle">
-          <span class="slider"></span>
-        </label>
-      </div>
-      <button class="btn" id="feedBtn">FEED FISH NOW</button>
-    </div>
-
-    <div class="card chart-card">
-      <div class="card-title">Temperature Log</div>
-      <div style="position: relative; height:200px; width:100%">
-        <canvas id="tempChart"></canvas>
-      </div>
+    <div class="row">
+      <span>System Alert:</span>
+      <span class="status" id="alert-display">Loading...</span>
     </div>
   </div>
 
-  <script>
+  <!-- Manual Controls -->
+  <div class="card">
+    <h2>Controls</h2>
+    <div class="row">
+      <span>Heater:</span>
+      <input type="checkbox" id="heater-toggle">
+    </div>
+    <div class="row">
+      <span>Filter Pump:</span>
+      <input type="checkbox" id="pump-toggle">
+    </div>
+    <div class="row">
+      <span>Light Intensity (<span id="light-val">0</span>%):</span>
+      <input type="range" id="light-slider" min="0" max="100" value="0">
+    </div>
+    <div class="row">
+      <span>Feeder:</span>
+      <button id="feed-btn">Feed Now</button>
+    </div>
+  </div>
+
+  <!-- Firebase Integration Script -->
+  <script type="module">
+    // 1. Import Firebase SDK (v10 Modular)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+    // 2. Replace this with your exact Firebase Web Config!
+    // Get this from Firebase Console -> Project Settings -> General -> Web App
     const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "aquarium-controller-74c20.firebaseapp.com",
       databaseURL: "https://aquarium-controller-74c20-default-rtdb.firebaseio.com",
-      projectId: "aquarium-controller-74c20"
+      projectId: "aquarium-controller-74c20",
+      storageBucket: "aquarium-controller-74c20.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const dbRootRef = ref(db, '/'); // Pointing to the root of your JSON
 
-    // Chart Setup
-    const ctx = document.getElementById('tempChart').getContext('2d');
-    const tempChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
-        datasets: [{
-          label: 'Temperature (°C)',
-          data: [],
-          borderColor: '#38bdf8',
-          backgroundColor: 'rgba(56, 189, 248, 0.1)',
-          fill: true,
-          tension: 0.3
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
+    // DOM Elements
+    const tempDisplay = document.getElementById("temp-display");
+    const alertDisplay = document.getElementById("alert-display");
+    const heaterToggle = document.getElementById("heater-toggle");
+    const pumpToggle = document.getElementById("pump-toggle");
+    const lightSlider = document.getElementById("light-slider");
+    const lightVal = document.getElementById("light-val");
+    const feedBtn = document.getElementById("feed-btn");
 
-    // Subscriptions
-    db.ref('/temperature').on('value', snap => {
-      if (snap.exists()) document.getElementById('tempVal').innerHTML = snap.val().toFixed(1) + ' &deg;C';
-    });
-
-    db.ref('/heater_status').on('value', snap => {
-      if (snap.exists()) document.getElementById('heaterToggle').checked = snap.val();
-    });
-
-    db.ref('/fan_status').on('value', snap => {
-      if (snap.exists()) document.getElementById('fanToggle').checked = snap.val();
-    });
-
-    db.ref('/pump_status').on('value', snap => {
-      if (snap.exists()) document.getElementById('pumpToggle').checked = snap.val();
-    });
-
-    db.ref('/ato_status').on('value', snap => {
-      if (snap.exists()) document.getElementById('atoToggle').checked = snap.val();
-    });
-
-    db.ref('/light_intensity').on('value', snap => {
-      if (snap.exists()) {
-        document.getElementById('lightSlider').value = snap.val();
-        document.getElementById('lightVal').innerText = snap.val() + '%';
+    // 3. READ DATA (Real-time Listener)
+    onValue(dbRootRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        // Update Sensors
+        if (data.temperature) tempDisplay.innerText = data.temperature.toFixed(1);
+        if (data.sound_alert) alertDisplay.innerText = data.sound_alert.message;
+        
+        // Update UI Controls to match database state
+        heaterToggle.checked = data.heater_status;
+        pumpToggle.checked = data.pump_status;
+        
+        // Only update slider if the user isn't actively dragging it
+        if (document.activeElement !== lightSlider) {
+          lightSlider.value = data.light_intensity;
+          lightVal.innerText = data.light_intensity;
+        }
       }
     });
 
-    db.ref('/temp_history').on('value', snap => {
-      if (snap.exists()) {
-        tempChart.data.datasets[0].data = snap.val();
-        tempChart.update();
-      }
+    // 4. WRITE DATA (Send commands to ESP8266 via Firebase)
+    heaterToggle.addEventListener("change", (e) => {
+      update(dbRootRef, { heater_status: e.target.checked });
     });
 
-    // Actions
-    document.getElementById('heaterToggle').onclick = (e) => db.ref('/heater_status').set(e.target.checked);
-    document.getElementById('fanToggle').onclick = (e) => db.ref('/fan_status').set(e.target.checked);
-    document.getElementById('pumpToggle').onclick = (e) => db.ref('/pump_status').set(e.target.checked);
-    document.getElementById('atoToggle').onclick = (e) => db.ref('/ato_status').set(e.target.checked);
-    document.getElementById('nightToggle').onclick = (e) => db.ref('/night_mode').set(e.target.checked);
-    document.getElementById('lightSlider').onchange = (e) => db.ref('/light_intensity').set(parseInt(e.target.value));
-    document.getElementById('feedBtn').onclick = () => db.ref('/feed_now').set(true);
+    pumpToggle.addEventListener("change", (e) => {
+      update(dbRootRef, { pump_status: e.target.checked });
+    });
+
+    // 'change' event fires when the slider is released
+    lightSlider.addEventListener("change", (e) => {
+      const val = parseInt(e.target.value);
+      lightVal.innerText = val;
+      update(dbRootRef, { light_intensity: val });
+    });
+
+    feedBtn.addEventListener("click", () => {
+      // Temporarily change button text for visual feedback
+      feedBtn.innerText = "Dispensing...";
+      feedBtn.disabled = true;
+      
+      // Set feed_now to true
+      update(dbRootRef, { feed_now: true });
+
+      // Reset button UI after 3 seconds
+      setTimeout(() => {
+        feedBtn.innerText = "Feed Now";
+        feedBtn.disabled = false;
+      }, 3000);
+    });
   </script>
 </body>
 </html>
