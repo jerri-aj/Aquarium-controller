@@ -4,14 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aquarium Smart Dashboard</title>
-  
-  <!-- Chart.js for Temperature History -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  
-  <!-- Firebase App & Database SDKs (v8) -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
   <style>
     :root {
       --bg-color: #0d1424;
@@ -23,47 +18,30 @@
       --status-off: #ef4444;
       --border-color: #232d42;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     body { background-color: var(--bg-color); color: var(--text-main); padding: 20px; }
-
     .header { text-align: center; margin-bottom: 25px; }
     .header h1 { font-size: 1.8rem; color: var(--accent-blue); }
-    .header p { color: var(--text-sub); font-size: 0.9rem; }
-
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; max-width: 1100px; margin: 0 auto; }
-    
     .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
     .card-title { font-size: 0.85rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; font-weight: 600; }
-    
     .metric-value { font-size: 2.2rem; font-weight: bold; color: var(--text-main); margin-bottom: 10px; }
-    
     .toggle-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; margin-bottom: 8px; }
     .toggle-label { font-size: 0.95rem; color: var(--text-main); }
-
-    /* Toggle Switches */
     .switch { position: relative; display: inline-block; width: 46px; height: 24px; }
     .switch input { opacity: 0; width: 0; height: 0; }
     .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color); transition: .3s; border-radius: 24px; }
     .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
     input:checked + .slider { background-color: var(--accent-blue); }
     input:checked + .slider:before { transform: translateX(22px); }
-
     .slider-container { margin-top: 10px; }
     input[type="range"] { width: 100%; -webkit-appearance: none; background: var(--border-color); height: 8px; border-radius: 4px; outline: none; }
     input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--accent-blue); cursor: pointer; }
-
     .btn { background: var(--accent-blue); color: #000; font-weight: bold; border: none; padding: 12px 15px; border-radius: 6px; cursor: pointer; width: 100%; transition: opacity 0.2s; margin-top: 10px; }
     .btn:active { opacity: 0.8; }
-
     .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
     .badge-on { background: rgba(34, 197, 94, 0.2); color: var(--status-on); border: 1px solid var(--status-on); }
     .badge-off { background: rgba(239, 68, 68, 0.2); color: var(--status-off); border: 1px solid var(--status-off); }
-
-    .schedule-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px; }
-    .schedule-group { display: flex; flex-direction: column; font-size: 0.8rem; color: var(--text-sub); }
-    .schedule-group input { background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px; border-radius: 4px; margin-top: 4px; outline: none; }
-
     .chart-card { grid-column: 1 / -1; }
   </style>
 </head>
@@ -71,12 +49,10 @@
 
   <div class="header">
     <h1>Aquarium Control Center</h1>
-    <p>Real-Time ESP8266 Firebase Sync</p>
+    <p>ESP8266 Live Synchronization</p>
   </div>
 
   <div class="grid">
-    
-    <!-- CARD 1: Temperature & Thermostat Toggles -->
     <div class="card">
       <div>
         <div class="card-title">Water Temperature</div>
@@ -100,7 +76,6 @@
       </div>
     </div>
 
-    <!-- CARD 2: Lighting Control -->
     <div class="card">
       <div class="card-title">Lighting System</div>
       <div class="toggle-row">
@@ -119,7 +94,6 @@
       </div>
     </div>
 
-    <!-- CARD 3: Filtration, ATO & Feeder Toggles -->
     <div class="card">
       <div class="card-title">Filtration & Pumps</div>
       <div class="toggle-row">
@@ -139,50 +113,15 @@
       <button class="btn" id="feedBtn">FEED FISH NOW</button>
     </div>
 
-    <!-- CARD 4: Schedules -->
-    <div class="card">
-      <div class="card-title">Schedules</div>
-      <div class="schedule-inputs">
-        <div class="schedule-group">
-          <label>Day On</label>
-          <input type="time" id="dayOnTime">
-        </div>
-        <div class="schedule-group">
-          <label>Day Off</label>
-          <input type="time" id="dayOffTime">
-        </div>
-        <div class="schedule-group">
-          <label>Feed 1</label>
-          <input type="time" id="feed1Time">
-        </div>
-        <div class="schedule-group">
-          <label>Feed 2</label>
-          <input type="time" id="feed2Time">
-        </div>
-      </div>
-    </div>
-
-    <!-- CARD 5: Sound Monitoring -->
-    <div class="card" style="grid-column: 1 / -1;">
-      <div class="card-title">Acoustic & Safety Monitor</div>
-      <div class="toggle-row">
-        <span id="soundMsg" style="font-weight: 500;">All operational parameters within standard range.</span>
-        <span id="soundDb" class="badge badge-on">NORMAL</span>
-      </div>
-    </div>
-
-    <!-- CARD 6: Temperature History Chart -->
     <div class="card chart-card">
-      <div class="card-title">Temperature Log (Recent Readings)</div>
-      <div style="position: relative; height:220px; width:100%">
+      <div class="card-title">Temperature Log</div>
+      <div style="position: relative; height:200px; width:100%">
         <canvas id="tempChart"></canvas>
       </div>
     </div>
-
   </div>
 
   <script>
-    // ---------------- FIREBASE CONFIGURATION ----------------
     const firebaseConfig = {
       databaseURL: "https://aquarium-controller-74c20-default-rtdb.firebaseio.com",
       projectId: "aquarium-controller-74c20"
@@ -191,7 +130,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // ---------------- CHART SETUP ----------------
+    // Chart Setup
     const ctx = document.getElementById('tempChart').getContext('2d');
     const tempChart = new Chart(ctx, {
       type: 'line',
@@ -206,116 +145,52 @@
           tension: 0.3
         }]
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { color: '#232d42' }, ticks: { color: '#94a3b8' } },
-          y: { grid: { color: '#232d42' }, ticks: { color: '#94a3b8' } }
-        }
-      }
+      options: { responsive: true, maintainAspectRatio: false }
     });
 
-    // ---------------- REAL-TIME LISTENERS ----------------
-    db.ref('/temperature').on('value', (snap) => {
+    // Subscriptions
+    db.ref('/temperature').on('value', snap => {
       if (snap.exists()) document.getElementById('tempVal').innerHTML = snap.val().toFixed(1) + ' &deg;C';
     });
 
-    db.ref('/heater_status').on('value', (snap) => {
+    db.ref('/heater_status').on('value', snap => {
       if (snap.exists()) document.getElementById('heaterToggle').checked = snap.val();
     });
 
-    db.ref('/fan_status').on('value', (snap) => {
+    db.ref('/fan_status').on('value', snap => {
       if (snap.exists()) document.getElementById('fanToggle').checked = snap.val();
     });
 
-    db.ref('/pump_status').on('value', (snap) => {
+    db.ref('/pump_status').on('value', snap => {
       if (snap.exists()) document.getElementById('pumpToggle').checked = snap.val();
     });
 
-    db.ref('/ato_status').on('value', (snap) => {
+    db.ref('/ato_status').on('value', snap => {
       if (snap.exists()) document.getElementById('atoToggle').checked = snap.val();
     });
 
-    db.ref('/night_mode').on('value', (snap) => {
-      if (snap.exists()) document.getElementById('nightToggle').checked = snap.val();
-    });
-
-    db.ref('/light_intensity').on('value', (snap) => {
+    db.ref('/light_intensity').on('value', snap => {
       if (snap.exists()) {
-        const val = snap.val();
-        document.getElementById('lightSlider').value = val;
-        document.getElementById('lightVal').innerText = val + '%';
+        document.getElementById('lightSlider').value = snap.val();
+        document.getElementById('lightVal').innerText = snap.val() + '%';
       }
     });
 
-    db.ref('/sound_alert').on('value', (snap) => {
-      if (snap.exists()) {
-        const data = snap.val();
-        document.getElementById('soundMsg').innerText = data.message || 'Operational';
-        const dbBadge = document.getElementById('soundDb');
-        dbBadge.innerText = data.db || 'NORMAL';
-        dbBadge.className = (data.db === 'High') ? 'badge badge-off' : 'badge badge-on';
-      }
-    });
-
-    db.ref('/schedules').on('value', (snap) => {
-      if (snap.exists()) {
-        const s = snap.val();
-        if (s.day_on) document.getElementById('dayOnTime').value = s.day_on;
-        if (s.day_off) document.getElementById('dayOffTime').value = s.day_off;
-        if (s.feed_1) document.getElementById('feed1Time').value = s.feed_1;
-        if (s.feed_2) document.getElementById('feed2Time').value = s.feed_2;
-      }
-    });
-
-    db.ref('/temp_history').on('value', (snap) => {
+    db.ref('/temp_history').on('value', snap => {
       if (snap.exists()) {
         tempChart.data.datasets[0].data = snap.val();
         tempChart.update();
       }
     });
 
-    // ---------------- USER TOGGLE HANDLERS ----------------
-    document.getElementById('heaterToggle').addEventListener('change', (e) => {
-      db.ref('/heater_status').set(e.target.checked);
-    });
-
-    document.getElementById('fanToggle').addEventListener('change', (e) => {
-      db.ref('/fan_status').set(e.target.checked);
-    });
-
-    document.getElementById('pumpToggle').addEventListener('change', (e) => {
-      db.ref('/pump_status').set(e.target.checked);
-    });
-
-    document.getElementById('atoToggle').addEventListener('change', (e) => {
-      db.ref('/ato_status').set(e.target.checked);
-    });
-
-    document.getElementById('nightToggle').addEventListener('change', (e) => {
-      db.ref('/night_mode').set(e.target.checked);
-    });
-
-    document.getElementById('lightSlider').addEventListener('change', (e) => {
-      db.ref('/light_intensity').set(parseInt(e.target.value));
-    });
-
-    document.getElementById('feedBtn').addEventListener('click', () => {
-      db.ref('/feed_now').set(true);
-    });
-
-    ['dayOnTime', 'dayOffTime', 'feed1Time', 'feed2Time'].forEach((id) => {
-      document.getElementById(id).addEventListener('change', () => {
-        db.ref('/schedules').update({
-          day_on: document.getElementById('dayOnTime').value,
-          day_off: document.getElementById('dayOffTime').value,
-          feed_1: document.getElementById('feed1Time').value,
-          feed_2: document.getElementById('feed2Time').value
-        });
-      });
-    });
+    // Actions
+    document.getElementById('heaterToggle').onclick = (e) => db.ref('/heater_status').set(e.target.checked);
+    document.getElementById('fanToggle').onclick = (e) => db.ref('/fan_status').set(e.target.checked);
+    document.getElementById('pumpToggle').onclick = (e) => db.ref('/pump_status').set(e.target.checked);
+    document.getElementById('atoToggle').onclick = (e) => db.ref('/ato_status').set(e.target.checked);
+    document.getElementById('nightToggle').onclick = (e) => db.ref('/night_mode').set(e.target.checked);
+    document.getElementById('lightSlider').onchange = (e) => db.ref('/light_intensity').set(parseInt(e.target.value));
+    document.getElementById('feedBtn').onclick = () => db.ref('/feed_now').set(true);
   </script>
 </body>
 </html>
