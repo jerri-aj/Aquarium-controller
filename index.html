@@ -32,6 +32,12 @@
         .toggle-checkbox:checked + .toggle-label { background-color: #3fb950; }
         /* Custom range slider */
         input[type=range] { accent-color: #3fb950; }
+        /* Hide spinner arrows for number input */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-6 flex flex-col justify-between">
@@ -62,10 +68,21 @@
                 <!-- CURRENT TEMPERATURE CARD -->
                 <div class="bg-cardbg rounded-2xl p-5 border border-gray-800/80 flex flex-col justify-between shadow-lg">
                     <div>
-                        <span class="text-xs font-semibold text-gray-400 tracking-wider uppercase">Current Temperature</span>
-                        <div class="flex items-baseline mt-2">
-                            <span id="val-temperature" class="text-5xl font-extrabold text-softgreen tracking-tight">26.4</span>
-                            <span class="text-2xl font-bold text-softgreen ml-1">°C</span>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-semibold text-gray-400 tracking-wider uppercase">Current Temperature</span>
+                            <span class="text-xs font-semibold text-gray-400 tracking-wider uppercase">Target Temperature</span>
+                        </div>
+                        <div class="flex justify-between items-baseline mt-2">
+                            <!-- Left side: Current Temperature -->
+                            <div class="flex items-baseline">
+                                <span id="val-temperature" class="text-5xl font-extrabold text-softgreen tracking-tight">26.4</span>
+                                <span class="text-2xl font-bold text-softgreen ml-1">°C</span>
+                            </div>
+                            <!-- Right side: Target Temperature (Editable) -->
+                            <div class="flex items-baseline">
+                                <input type="number" step="0.1" id="input-target-temperature" class="text-5xl font-extrabold text-red-500 bg-transparent w-28 text-right focus:outline-none tracking-tight" value="25.0" onchange="updateTargetTemperature(this.value)">
+                                <span class="text-2xl font-bold text-red-500 ml-1">°C</span>
+                            </div>
                         </div>
                     </div>
                     <div class="my-6 flex justify-center">
@@ -372,12 +389,15 @@
                 }
             }
 
-            // Update Commands Checkboxes
+            // Update Commands Checkboxes & Target Temp
             if (data.commands) {
                 document.getElementById('cmd-heaterEnabled').checked = !!data.commands.heaterEnabled;
                 document.getElementById('cmd-fanEnabled').checked = !!data.commands.fanEnabled;
                 document.getElementById('cmd-atoEnabled').checked = !!data.commands.atoEnabled;
                 document.getElementById('cmd-lightEnabled').checked = !!data.commands.lightEnabled;
+                if (typeof data.commands.targetTemperature !== 'undefined') {
+                    document.getElementById('input-target-temperature').value = Number(data.commands.targetTemperature).toFixed(1);
+                }
             }
 
             // Update Light Brightness & PWM readout
@@ -394,6 +414,13 @@
         window.updateCommand = function(commandKey, value) {
             const updates = {};
             updates['/commands/' + commandKey] = value;
+            update(aquariumRef, updates);
+        };
+
+        window.updateTargetTemperature = function(value) {
+            const valNum = Number(value);
+            const updates = {};
+            updates['/commands/targetTemperature'] = valNum;
             update(aquariumRef, updates);
         };
 
